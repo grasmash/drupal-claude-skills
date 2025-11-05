@@ -15,35 +15,35 @@ A clean, open-source repository at `~/Sites/drupal-claude-skills` containing:
    - `LICENSE` - MIT license with third-party notices
    - `.gitignore` - Standard ignores
 
-3. **Sync Script**:
-   - `sync-from-private.sh` - Automated sync from your private repo
-
 ## Syncing Updates from Private Repo
 
-When you make improvements to the Drupal skills in your private GuitarGate repository, sync them to this open-source repo:
+When you make improvements to the Drupal skills in your private GuitarGate repository, sync them to this open-source repo using the sync script in your private repo:
 
 ```bash
+# From your PRIVATE repo, run the sync script
+cd ~/Sites/gg
+./.claude/scripts/sync-from-private.sh
+
+# The script will sync to ~/Sites/drupal-claude-skills by default
+# Review changes in the open-source repo
 cd ~/Sites/drupal-claude-skills
-
-# Run sync script (defaults to ~/Sites/gg as source)
-./sync-from-private.sh
-
-# Or specify custom source path
-./sync-from-private.sh /path/to/your/private/repo
-
-# Review changes
 git diff
 
 # Commit if looks good
-git add .claude/skills
+git add .claude
 git commit -m "Sync latest skill updates from private repo"
+git push origin main
 ```
 
-The script will:
-- Create a backup branch automatically
-- Copy only Drupal-specific skills (excludes GuitarGate skills)
-- Show you what changed
-- Let you review before committing
+The sync script (located in your private repo at `.claude/scripts/sync-from-private.sh`):
+- Creates a backup branch automatically
+- Copies only Drupal-specific skills (excludes GuitarGate skills)
+- Removes GuitarGate sections during sync
+- Syncs upstream scripts too
+- Shows you what changed
+- Lets you review before committing
+
+**Note**: The sync script is NOT included in this open-source repo - it only exists in your private repo.
 
 ## Publishing to GitHub
 
