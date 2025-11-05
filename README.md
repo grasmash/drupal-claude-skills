@@ -23,16 +23,16 @@ Comprehensive Drupal patterns covering 50+ topics including:
 
 **Location**: `.claude/skills/drupal-at-your-fingertips/`
 
-### 2. Drupal Composer Updates
-Comprehensive guide for managing Drupal module updates, including:
-- Standard module update workflows
+### 2. Drupal Contrib Module Management
+Comprehensive guide for managing Drupal contributed modules, including:
+- Composer-based module update workflows
 - Drupal 11 compatibility checking
 - Patch management with cweagans/composer-patches
 - Drupal Lenient plugin usage
 - Major version upgrade patterns
-- Troubleshooting common update issues
+- Troubleshooting dependency issues
 
-**Location**: `.claude/skills/drupal-composer-updates/`
+**Location**: `.claude/skills/drupal-contrib-mgmt/`
 
 ### 3. Drupal Configuration Management
 Safe patterns for inspecting and syncing Drupal configuration:

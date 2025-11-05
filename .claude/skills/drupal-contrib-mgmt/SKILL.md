@@ -1,9 +1,9 @@
 ---
-name: drupal-composer-updates
-description: Comprehensive guide for performing Drupal composer updates, managing module upgrades, handling patches, and ensuring D11+ compatibility. Use when updating Drupal modules or resolving version compatibility issues.
+name: drupal-contrib-mgmt
+description: Comprehensive guide for managing Drupal contributed modules via Composer, including updates, patches, version compatibility, and Drupal 11 upgrades. Use when updating modules or resolving dependency issues.
 ---
 
-# Drupal Composer Updates & Module Management
+# Drupal Contrib Module Management
 
 ## Core Update Workflow
 

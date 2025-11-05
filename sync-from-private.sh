@@ -45,8 +45,9 @@ fi
 # List of Drupal-specific skills to sync (excluding GuitarGate-specific ones)
 DRUPAL_SKILLS=(
     "drupal-at-your-fingertips"
-    "drupal-composer-updates"
+    "drupal-contrib-mgmt"
     "drupal-config-mgmt"
+    "drupal-ddev"
     "drupal-pantheon"
     "ivangrynenko-cursorrules-drupal"
 )
