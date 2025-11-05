@@ -47,6 +47,7 @@ DRUPAL_SKILLS=(
     "drupal-at-your-fingertips"
     "drupal-composer-updates"
     "drupal-config-mgmt"
+    "drupal-pantheon"
     "ivangrynenko-cursorrules-drupal"
 )
 
