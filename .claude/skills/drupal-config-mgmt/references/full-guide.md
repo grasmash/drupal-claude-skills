@@ -4,28 +4,31 @@ Safe patterns for inspecting and syncing Drupal configuration across environment
 
 ## Problem: Avoid Accidental Config Imports
 
-**CRITICAL**: Terminus drush commands default to `--yes` unless explicitly told `--no`. This means commands like `config:import` or `cim` will AUTO-CONFIRM and import configuration even when you only want to inspect differences.
+**CRITICAL**: Some hosting platforms configure drush commands to default to `--yes` (auto-confirm) unless explicitly told `--no`. This means commands like `config:import` or `cim` may AUTO-CONFIRM and import configuration even when you only want to inspect differences.
 
 ### Dangerous vs Safe Patterns
 
-❌ **DANGEROUS** - Will auto-import without confirmation:
+❌ **DANGEROUS** - May auto-import without confirmation:
 ```bash
-terminus drush {site}.{env} -- cim --diff
-terminus drush {site}.{env} -- config:import --diff
-terminus drush {site}.{env} -- cex --diff
+# Via SSH to remote server
+ssh user@remote.server "cd /path/to/drupal && drush cim --diff"
+ssh user@remote.server "cd /path/to/drupal && drush config:import --diff"
+ssh user@remote.server "cd /path/to/drupal && drush cex --diff"
 ```
 
 ✅ **SAFE** - Will show diff without importing:
 ```bash
-terminus drush {site}.{env} -- cim --no --diff
-terminus drush {site}.{env} -- config:import --no --diff
-terminus drush {site}.{env} -- cex --no --diff
+# Via SSH with explicit --no flag
+ssh user@remote.server "cd /path/to/drupal && drush cim --no --diff"
+ssh user@remote.server "cd /path/to/drupal && drush config:import --no --diff"
+ssh user@remote.server "cd /path/to/drupal && drush cex --no --diff"
 ```
 
 ✅ **SAFEST** - Use read-only commands:
 ```bash
-terminus drush {site}.{env} -- config:get config.name
-terminus drush {site}.{env} -- config:status
+# Via SSH - read-only operations
+ssh user@remote.server "cd /path/to/drupal && drush config:get config.name"
+ssh user@remote.server "cd /path/to/drupal && drush config:status"
 ```
 
 ## Safe Inspection Workflow
@@ -35,24 +38,25 @@ Use `config:get` and `config:status` for read-only inspection, or use `--no` fla
 ### 1. Get Specific Config Values from Remote Environment
 
 ```bash
+# Via SSH to remote server
 # Get full config object
-terminus drush {site}.{env} -- config:get config.name
+ssh user@remote.server "cd /path/to/drupal && drush config:get config.name"
 
 # Get specific nested value
-terminus drush {site}.{env} -- config:get config.name key.subkey
+ssh user@remote.server "cd /path/to/drupal && drush config:get config.name key.subkey"
 
 # Get as YAML for easy comparison
-terminus drush {site}.{env} -- config:get config.name --format=yaml
+ssh user@remote.server "cd /path/to/drupal && drush config:get config.name --format=yaml"
 ```
 
 ### 2. Extract Specific Values from Config
 
 ```bash
 # Use grep to find specific settings
-terminus drush {site}.{env} -- config:get config.name 2>&1 | grep "setting_name"
+ssh user@remote.server "cd /path/to/drupal && drush config:get config.name" 2>&1 | grep "setting_name"
 
 # Extract CTA text from custom block
-terminus drush {site}.{env} -- config:get block.block.custom_hero 2>&1 | grep -A2 "cta_text\|cta_url"
+ssh user@remote.server "cd /path/to/drupal && drush config:get block.block.custom_hero" 2>&1 | grep -A2 "cta_text\|cta_url"
 ```
 
 ### 3. Compare Local vs Remote Config
@@ -60,20 +64,21 @@ terminus drush {site}.{env} -- config:get block.block.custom_hero 2>&1 | grep -A
 #### Option A: View config export diff (safe with --no)
 
 ```bash
-# View what would be exported from active config to files (read-only)
-terminus drush {site}.{env} -- cex --no --diff
+# Via SSH with --no flag (read-only)
+# View what would be exported from active config to files
+ssh user@remote.server "cd /path/to/drupal && drush cex --no --diff"
 
-# View what would be imported from files to active config (read-only)
-terminus drush {site}.{env} -- cim --no --diff
+# View what would be imported from files to active config
+ssh user@remote.server "cd /path/to/drupal && drush cim --no --diff"
 ```
 
-**CRITICAL**: Always include `--no` flag! Without it, terminus auto-confirms and will actually import/export.
+**CRITICAL**: Always include `--no` flag! Without it, some platforms auto-confirm and will actually import/export.
 
 #### Option B: Get specific config and compare manually
 
 ```bash
-# Get remote config to temp file
-terminus drush {site}.{env} -- config:get config.name --format=yaml > /tmp/remote_config.yml
+# Get remote config to temp file via SSH
+ssh user@remote.server "cd /path/to/drupal && drush config:get config.name --format=yaml" > /tmp/remote_config.yml
 
 # Compare with local
 echo "=== LOCAL ===" && grep "setting" config/default/config.name.yml
@@ -103,12 +108,12 @@ git commit -m "Update config from {env} environment"
 ## Example: Syncing CTA Messaging from Dev
 
 ```bash
-# 1. Get current values from dev
+# 1. Get current values from dev environment via SSH
 echo "=== DEV: block.block.custom_hero ===" && \
-  terminus drush {site}.dev -- config:get block.block.custom_hero 2>&1 | grep -A2 "cta_text\|cta_url"
+  ssh user@dev.server "cd /path/to/drupal && drush config:get block.block.custom_hero" 2>&1 | grep -A2 "cta_text\|cta_url"
 
 echo "=== DEV: mymodule.settings ===" && \
-  terminus drush {site}.dev -- config:get mymodule.settings 2>&1 | grep "cta_text\|cta_url"
+  ssh user@dev.server "cd /path/to/drupal && drush config:get mymodule.settings" 2>&1 | grep "cta_text\|cta_url"
 
 # 2. Get current local values
 echo "=== LOCAL: block.block.custom_hero ===" && \
@@ -130,12 +135,12 @@ git commit -m "Update CTA messaging from dev environment"
 ## Example: Syncing Search API Config
 
 ```bash
-# 1. Export full config from remote
-terminus drush {site}.test -- config:get search_api.server.pantheon_search --format=yaml > /tmp/server.yml
-terminus drush {site}.test -- config:get search_api.index.content --format=yaml > /tmp/index.yml
+# 1. Export full config from remote via SSH
+ssh user@test.server "cd /path/to/drupal && drush config:get search_api.server.solr_server --format=yaml" > /tmp/server.yml
+ssh user@test.server "cd /path/to/drupal && drush config:get search_api.index.content --format=yaml" > /tmp/index.yml
 
 # 2. Copy to local config
-cp /tmp/server.yml config/default/search_api.server.pantheon_search.yml
+cp /tmp/server.yml config/default/search_api.server.solr_server.yml
 cp /tmp/index.yml config/default/search_api.index.content.yml
 
 # 3. If server was renamed, remove old config
@@ -158,8 +163,8 @@ Check what config would be imported (read-only):
 # Local environment
 ddev drush config:status
 
-# Remote environment
-terminus drush {site}.{env} -- config:status
+# Remote environment via SSH
+ssh user@remote.server "cd /path/to/drupal && drush config:status"
 ```
 
 ## Common Config Patterns
@@ -212,14 +217,14 @@ This can happen if a drush command or config import runs unexpectedly.
 ### Comparing environments
 
 ```bash
-# Get same config from different environments
-terminus drush {site}.dev -- config:get config.name > /tmp/dev.yml
-terminus drush {site}.test -- config:get config.name > /tmp/test.yml
-terminus drush {site}.live -- config:get config.name > /tmp/live.yml
+# Get same config from different environments via SSH
+ssh user@dev.server "cd /path/to/drupal && drush config:get config.name" > /tmp/dev.yml
+ssh user@test.server "cd /path/to/drupal && drush config:get config.name" > /tmp/test.yml
+ssh user@prod.server "cd /path/to/drupal && drush config:get config.name" > /tmp/prod.yml
 
 # Compare
 diff -u /tmp/dev.yml /tmp/test.yml
-diff -u /tmp/test.yml /tmp/live.yml
+diff -u /tmp/test.yml /tmp/prod.yml
 ```
 
 ## Related Commands
