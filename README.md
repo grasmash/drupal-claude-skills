@@ -61,18 +61,7 @@ DDEV local development environment for Drupal:
 
 **Location**: `.claude/skills/drupal-ddev/`
 
-### 5. Drupal Pantheon Platform
-Pantheon hosting platform patterns and workflows:
-- pantheon.yml configuration (PHP, database, Solr versions)
-- Terminus CLI safe command patterns
-- Environment management (dev, test, live, multidev)
-- Deployment workflows and best practices
-- Quicksilver platform hooks
-- Platform limits and considerations
-
-**Location**: `.claude/skills/drupal-pantheon/`
-
-### 6. Ivan Grynenko - Drupal Security Patterns
+### 5. Ivan Grynenko - Drupal Security Patterns
 **Source**: [Ivan Grynenko's Cursor Rules](https://github.com/ivangrynenko/cursorrules)
 
 OWASP Top 10 security patterns for Drupal:
@@ -235,8 +224,8 @@ These patterns come from:
 Skills activate automatically based on your task:
 - Updating modules? `drupal-contrib-mgmt` activates
 - Local development? `drupal-ddev` provides DDEV patterns
-- Pantheon deployment? `drupal-pantheon` guides you
 - Security review? `ivangrynenko-cursorrules-drupal` enforces OWASP
+- Configuration management? `drupal-config-mgmt` ensures safety
 
 ## Roadmap
 
@@ -246,8 +235,7 @@ Future skills to add:
 - [ ] API-first/Headless Drupal patterns
 - [ ] Drupal Commerce patterns
 - [ ] Migration patterns (Migrate API, Drupal 7 → 10)
-- [ ] Acquia Cloud Platform patterns
-- [ ] Platform.sh hosting patterns
+- [ ] Platform hosting patterns (Acquia, Platform.sh, Pantheon)
 
 Want to contribute a skill? See [CONTRIBUTING.md](CONTRIBUTING.md)!
 

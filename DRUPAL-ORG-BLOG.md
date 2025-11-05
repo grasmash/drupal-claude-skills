@@ -18,7 +18,7 @@ Until now, the Claude ecosystem had skills for document manipulation, creative t
 
 ## What's Included?
 
-**Six production-ready skills:**
+**Five production-ready skills:**
 
 1. **drupal-at-your-fingertips** - 50+ Drupal development patterns from Selwyn Polit's excellent [Drupal at Your Fingertips](https://drupalatyourfingertips.com)
    - Services, hooks, events, plugins
@@ -35,7 +35,7 @@ Until now, the Claude ecosystem had skills for document manipulation, creative t
 
 3. **drupal-config-mgmt** - Safe configuration management patterns
    - Read-only config inspection
-   - **CRITICAL**: Terminus drush `--no` flag patterns (prevents accidental imports!)
+   - Safe Drush command patterns
    - Syncing config between environments
    - Manual config editing workflows
 
@@ -45,13 +45,7 @@ Until now, the Claude ecosystem had skills for document manipulation, creative t
    - Xdebug debugging
    - macOS performance optimization with mutagen
 
-5. **drupal-pantheon** - Pantheon platform workflows
-   - pantheon.yml configuration
-   - Terminus CLI safe patterns
-   - Environment management
-   - Deployment best practices
-
-6. **ivangrynenko-cursorrules-drupal** - OWASP Top 10 security patterns from [Ivan Grynenko](https://github.com/ivangrynenko/cursorrules)
+5. **ivangrynenko-cursorrules-drupal** - OWASP Top 10 security patterns from [Ivan Grynenko](https://github.com/ivangrynenko/cursorrules)
    - SQL injection prevention
    - XSS protection
    - Access control
@@ -121,17 +115,16 @@ Then ask questions like:
 
 ### Safe Config Management
 
-The `drupal-config-mgmt` skill includes **critical safety patterns** for Terminus:
+The `drupal-config-mgmt` skill includes patterns for safely inspecting configuration:
 
 ```bash
-# ❌ DANGEROUS - Will auto-import without confirmation
-terminus drush site.env -- cim --diff
+# Read-only inspection
+drush config:status
+drush config:get system.site
 
-# ✅ SAFE - Shows diff without importing
-terminus drush site.env -- cim --no --diff
+# Safe diff checking
+drush config:import --no --diff
 ```
-
-This alone has saved me from accidental config imports multiple times!
 
 ### Composer Updates
 

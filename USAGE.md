@@ -81,7 +81,6 @@ drupal-claude-skills/
 │   │   ├── drupal-contrib-mgmt/
 │   │   ├── drupal-config-mgmt/
 │   │   ├── drupal-ddev/
-│   │   ├── drupal-pantheon/
 │   │   └── ivangrynenko-cursorrules-drupal/
 │   └── scripts/
 │       ├── sync-d9book.sh
@@ -100,7 +99,6 @@ Once installed, skills activate automatically based on context. For example:
 - Updating modules → `drupal-contrib-mgmt` activates
 - Managing config → `drupal-config-mgmt` activates
 - Local development → `drupal-ddev` activates
-- Pantheon deployment → `drupal-pantheon` activates
 - Security review → `ivangrynenko-cursorrules-drupal` activates
 
 You can also explicitly invoke a skill:

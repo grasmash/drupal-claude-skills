@@ -226,7 +226,7 @@ When submitting, provide:
 **Repository URL**: `https://github.com/YOUR_USERNAME/drupal-claude-skills`
 
 **Short Description**:
-> Comprehensive Claude Code skills for Drupal 9/10/11 development including contrib management, configuration workflows, DDEV local development, Pantheon hosting, and OWASP security patterns.
+> Comprehensive Claude Code skills for Drupal 9/10/11 development including contrib management, configuration workflows, DDEV local development, and OWASP security patterns.
 
 **Tags**:
 `drupal`, `cms`, `php`, `web-development`, `security`, `devops`, `configuration-management`
@@ -236,7 +236,6 @@ When submitting, provide:
 - drupal-contrib-mgmt (Composer & module management)
 - drupal-config-mgmt (Safe config workflows)
 - drupal-ddev (Local development)
-- drupal-pantheon (Hosting platform)
 - ivangrynenko-cursorrules-drupal (OWASP security)
 
 ---

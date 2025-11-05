@@ -13,9 +13,8 @@ Adds comprehensive skill collection for Drupal 9/10/11 development.
 First comprehensive skill collection for Drupal CMS in the Claude Code ecosystem. Covers:
 - 50+ Drupal development patterns (from Selwyn Polit's "Drupal at Your Fingertips")
 - Composer-based contrib module management
-- Safe configuration workflows (with critical Terminus patterns)
+- Safe configuration workflows
 - DDEV local development
-- Pantheon platform workflows
 - OWASP Top 10 security patterns (from Ivan Grynenko)
 
 ### Changes
@@ -25,7 +24,7 @@ Add to README.md under an appropriate section (suggest creating new "CMS & Frame
 ```markdown
 ### CMS & Frameworks
 
-- [drupal-claude-skills](https://github.com/grasmash/drupal-claude-skills) - Comprehensive skills for Drupal 9/10/11 development including contrib management, configuration workflows, DDEV local development, Pantheon hosting, and OWASP security patterns. First skill collection specifically for Drupal CMS.
+- [drupal-claude-skills](https://github.com/grasmash/drupal-claude-skills) - Comprehensive skills for Drupal 9/10/11 development including contrib management, configuration workflows, DDEV local development, and OWASP security patterns. First skill collection specifically for Drupal CMS.
 ```
 
 ### Why include this?
