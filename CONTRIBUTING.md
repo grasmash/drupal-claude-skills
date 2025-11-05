@@ -91,12 +91,14 @@ description: Complete description of what the skill does and when to use it. Sho
 
 ### Code Examples
 
-```yaml
+```bash
 # Good: Generic, reusable
-terminus drush {site}.{env} -- cr
+ssh user@remote.server "cd /path/to/drupal && drush cr"
+ddev drush config:get {config.name}
 
 # Bad: Project-specific
-terminus drush mysite.dev -- cr
+ssh admin@mysite.example.com "cd /var/www/html && drush cr"
+ddev drush config:get block.block.my_custom_block
 ```
 
 - Use `{placeholders}` for variable values
