@@ -1,6 +1,12 @@
 # Drupal Claude Skills
 
-A collection of Claude AI skills for Drupal development, covering best practices, security patterns, configuration management, and module updates.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Claude Code](https://img.shields.io/badge/Claude-Code-orange.svg)](https://claude.com/claude-code)
+[![Drupal](https://img.shields.io/badge/Drupal-9%20%7C%2010%20%7C%2011-blue.svg)](https://www.drupal.org)
+
+A comprehensive collection of Claude AI skills for Drupal development, covering best practices, security patterns, configuration management, and module updates.
+
+> **First comprehensive skill collection for Drupal + Claude Code** - Install these battle-tested skills to supercharge your Drupal development workflow with AI assistance.
 
 ## Overview
 
@@ -213,15 +219,44 @@ For issues or questions:
 - Refer to individual skill sources for content-specific questions
 - Check [Claude Code documentation](https://docs.claude.com/claude-code) for skill usage
 
+## Why These Skills?
+
+### Fills a Gap
+The Claude Code ecosystem has skills for document manipulation, creative tools, and web development - but **nothing for CMS/PHP frameworks**. This is the first comprehensive skill collection for Drupal development.
+
+### Battle-Tested
+These patterns come from:
+- Years of production Drupal development
+- Industry expert documentation (Selwyn Polit, Ivan Grynenko)
+- Real-world security best practices (OWASP Top 10)
+- Modern Drupal 9/10/11 workflows
+
+### Context-Aware
+Skills activate automatically based on your task:
+- Updating modules? `drupal-contrib-mgmt` activates
+- Local development? `drupal-ddev` provides DDEV patterns
+- Pantheon deployment? `drupal-pantheon` guides you
+- Security review? `ivangrynenko-cursorrules-drupal` enforces OWASP
+
 ## Roadmap
 
 Future skills to add:
 - [ ] Drupal performance optimization patterns
 - [ ] Advanced theming with SDC (Single Directory Components)
 - [ ] API-first/Headless Drupal patterns
-- [ ] Commerce module patterns
-- [ ] Migration patterns
+- [ ] Drupal Commerce patterns
+- [ ] Migration patterns (Migrate API, Drupal 7 → 10)
+- [ ] Acquia Cloud Platform patterns
+- [ ] Platform.sh hosting patterns
+
+Want to contribute a skill? See [CONTRIBUTING.md](CONTRIBUTING.md)!
 
 ---
 
-Made with ❤️ for the Drupal community
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=YOUR_USERNAME/drupal-claude-skills&type=Date)](https://star-history.com/#YOUR_USERNAME/drupal-claude-skills&Date)
+
+---
+
+Made with ❤️ for the Drupal community by developers who believe AI should understand your stack
