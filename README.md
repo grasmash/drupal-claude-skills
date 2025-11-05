@@ -44,7 +44,18 @@ Safe patterns for inspecting and syncing Drupal configuration:
 
 **Location**: `.claude/skills/drupal-config-mgmt/`
 
-### 4. Drupal Pantheon Platform
+### 4. DDEV Local Development
+DDEV local development environment for Drupal:
+- .ddev/config.yaml complete reference
+- Essential DDEV commands and workflows
+- Database import/export operations
+- Xdebug debugging setup
+- Performance optimization (mutagen for macOS)
+- Custom commands and hooks
+
+**Location**: `.claude/skills/drupal-ddev/`
+
+### 5. Drupal Pantheon Platform
 Pantheon hosting platform patterns and workflows:
 - pantheon.yml configuration (PHP, database, Solr versions)
 - Terminus CLI safe command patterns
@@ -55,7 +66,7 @@ Pantheon hosting platform patterns and workflows:
 
 **Location**: `.claude/skills/drupal-pantheon/`
 
-### 5. Ivan Grynenko - Drupal Security Patterns
+### 6. Ivan Grynenko - Drupal Security Patterns
 **Source**: [Ivan Grynenko's Cursor Rules](https://github.com/ivangrynenko/cursorrules)
 
 OWASP Top 10 security patterns for Drupal:
