@@ -114,6 +114,6 @@ Contributions are welcome! Please see the main [README.md](README.md) for contri
 
 ## Support
 
-- **Issues**: Report on [GitHub Issues](https://github.com/YOUR_USERNAME/drupal-claude-skills/issues)
+- **Issues**: Report on [GitHub Issues](https://github.com/grasmash/drupal-claude-skills/issues)
 - **Content Questions**: Refer to upstream sources (Selwyn Polit, Ivan Grynenko)
 - **Claude Code Help**: See [Claude Code docs](https://docs.claude.com/claude-code)

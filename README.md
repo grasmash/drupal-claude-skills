@@ -255,7 +255,7 @@ Want to contribute a skill? See [CONTRIBUTING.md](CONTRIBUTING.md)!
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=YOUR_USERNAME/drupal-claude-skills&type=Date)](https://star-history.com/#YOUR_USERNAME/drupal-claude-skills&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=grasmash/drupal-claude-skills&type=Date)](https://star-history.com/#grasmash/drupal-claude-skills&Date)
 
 ---
 
