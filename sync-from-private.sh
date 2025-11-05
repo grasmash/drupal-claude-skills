@@ -46,8 +46,14 @@ fi
 DRUPAL_SKILLS=(
     "drupal-at-your-fingertips"
     "drupal-composer-updates"
-    "drupal-config-mgmt.md"
+    "drupal-config-mgmt"
     "ivangrynenko-cursorrules-drupal"
+)
+
+# Scripts to sync
+DRUPAL_SCRIPTS=(
+    "sync-d9book.sh"
+    "sync-ivan-rules.sh"
 )
 
 # Check for uncommitted changes in target
@@ -65,6 +71,59 @@ fi
 BACKUP_BRANCH="backup-$(date +%Y%m%d-%H%M%S)"
 echo -e "${YELLOW}Creating backup branch: $BACKUP_BRANCH${NC}"
 git branch "$BACKUP_BRANCH"
+
+# Function to remove GuitarGate sections from a file
+remove_guitargate_section() {
+    local file="$1"
+
+    # Skip if file doesn't contain GuitarGate references
+    if ! grep -q "## GuitarGate" "$file" 2>/dev/null; then
+        return 0
+    fi
+
+    # Create temp file
+    local tmpfile=$(mktemp)
+
+    # Process file with awk to remove GuitarGate sections
+    awk '
+        /^## GuitarGate (Context|Application)/ {
+            skip = 1
+            next
+        }
+        /^## / && skip {
+            skip = 0
+        }
+        /^---/ && skip {
+            skip = 0
+            print
+            next
+        }
+        !skip
+    ' "$file" > "$tmpfile"
+
+    # Replace original
+    mv "$tmpfile" "$file"
+    echo "  → Removed GuitarGate references from $(basename "$file")"
+}
+
+# Sync scripts
+echo ""
+echo -e "${GREEN}Syncing upstream sync scripts...${NC}"
+mkdir -p "$TARGET_REPO/.claude/scripts"
+
+for script in "${DRUPAL_SCRIPTS[@]}"; do
+    SOURCE_PATH="$SOURCE_REPO/.claude/scripts/$script"
+    TARGET_PATH="$TARGET_REPO/.claude/scripts/$script"
+
+    if [ -f "$SOURCE_PATH" ]; then
+        # Copy script and remove GuitarGate references
+        cp "$SOURCE_PATH" "$TARGET_PATH"
+        remove_guitargate_section "$TARGET_PATH"
+        echo -e "${GREEN}  ✓ $script${NC}"
+    else
+        echo -e "${YELLOW}  ⚠ $script not found in source${NC}"
+    fi
+done
 
 # Sync each skill
 echo ""
@@ -88,9 +147,16 @@ for skill in "${DRUPAL_SKILLS[@]}"; do
         # It's a directory
         rsync -av --delete "$SOURCE_PATH/" "$TARGET_PATH/"
         echo -e "${GREEN}  ✓ Directory synced${NC}"
+
+        # Remove GuitarGate references from all markdown files
+        echo -e "${YELLOW}  → Cleaning GuitarGate references...${NC}"
+        find "$TARGET_PATH" -name "*.md" -type f | while read -r mdfile; do
+            remove_guitargate_section "$mdfile"
+        done
     else
         # It's a file
         cp "$SOURCE_PATH" "$TARGET_PATH"
+        remove_guitargate_section "$TARGET_PATH"
         echo -e "${GREEN}  ✓ File synced${NC}"
     fi
 done
@@ -113,7 +179,7 @@ echo -e "${YELLOW}Review changes with:${NC}"
 echo "  git diff"
 echo ""
 echo -e "${YELLOW}To commit changes:${NC}"
-echo "  git add .claude/skills"
+echo "  git add .claude"
 echo "  git commit -m 'Sync Drupal skills from private repository'"
 echo ""
 echo -e "${YELLOW}To revert changes:${NC}"
