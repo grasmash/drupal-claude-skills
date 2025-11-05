@@ -90,22 +90,6 @@ See `/references/` directory for complete list of 50+ topics.
 
 ---
 
-## GuitarGate Context
-
-Apply d9book patterns in GuitarGate's gg_* modules:
-- Use dependency injection (*.services.yml)
-- Load entities by UUID for API endpoints
-- Follow existing code style conventions
-- Test with DTT (Drupal Test Traits)
-
-### Related Documentation
-
-- @docs/architecture.md - GuitarGate architecture
-- @docs/TESTING_STRATEGY.md - Testing approach
-- @docs/code_style_conventions (memory)
-
----
-
 **To update**: Run `.claude/scripts/sync-d9book.sh`
 EOT
 
@@ -138,16 +122,6 @@ This chapter covers:
 - Best practices and common patterns
 - Step-by-step implementation guides
 - Troubleshooting and debugging tips
-
----
-
-## GuitarGate Application
-
-Apply these patterns in GuitarGate's gg_* modules:
-- Use dependency injection for services
-- Load entities by UUID in APIs
-- Follow existing code conventions
-- Write DTT tests for new features
 
 ---
 

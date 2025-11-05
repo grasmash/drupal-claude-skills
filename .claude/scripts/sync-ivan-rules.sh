@@ -84,23 +84,6 @@ See `/references/` directory for complete list.
 
 ---
 
-## GuitarGate Context
-
-Apply OWASP patterns in GuitarGate's gg_* modules:
-- Use dependency injection (*.services.yml)
-- Load entities by UUID for API endpoints
-- Use Key module for sensitive credentials
-- Follow existing code style conventions
-- Write DTT tests for security features
-
-### Related Documentation
-
-- @docs/architecture.md - GuitarGate architecture
-- @docs/TESTING_STRATEGY.md - Testing approach
-- @docs/code_style_conventions (memory)
-
----
-
 **To update**: Run `.claude/scripts/sync-ivan-rules.sh`
 EOT
 
@@ -211,17 +194,6 @@ This security pattern covers:
 \`\`\`markdown
 $(cat "$temp_file")
 \`\`\`
-
----
-
-## GuitarGate Application
-
-Apply these security patterns in GuitarGate's gg_* modules:
-- Use dependency injection for services
-- Load entities by UUID in APIs
-- Use Key module for sensitive credentials
-- Follow existing code conventions
-- Write DTT tests for security features
 
 ---
 

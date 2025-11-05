@@ -1,13 +1,15 @@
 # Quick Start Guide
 
-## What You Have Now
+## What's Included
 
-A clean, open-source repository at `~/Sites/drupal-claude-skills` containing:
+A comprehensive collection of Drupal development skills for Claude Code:
 
-1. **Four Drupal Skills**:
+1. **Six Drupal Skills**:
    - `drupal-at-your-fingertips` - 50+ Drupal development patterns
-   - `drupal-composer-updates` - Module update workflows
+   - `drupal-contrib-mgmt` - Composer-based module management
    - `drupal-config-mgmt` - Safe configuration management
+   - `drupal-ddev` - Local development environment
+   - `drupal-pantheon` - Pantheon platform workflows
    - `ivangrynenko-cursorrules-drupal` - OWASP security patterns
 
 2. **Documentation**:
@@ -15,140 +17,103 @@ A clean, open-source repository at `~/Sites/drupal-claude-skills` containing:
    - `LICENSE` - MIT license with third-party notices
    - `.gitignore` - Standard ignores
 
-## Syncing Updates from Private Repo
+## For Maintainers: Syncing Updates
 
-When you make improvements to the Drupal skills in your private GuitarGate repository, sync them to this open-source repo using the sync script in your private repo:
+If you maintain a private fork with additional project-specific content, you can sync Drupal-only improvements back to this repository:
 
 ```bash
-# From your PRIVATE repo, run the sync script
-cd ~/Sites/gg
-./.claude/scripts/sync-from-private.sh
+# Example sync workflow (customize for your setup)
+# 1. Make improvements to Drupal skills in private repo
+# 2. Filter out project-specific references
+# 3. Review changes
+git diff .claude/skills/drupal-*
 
-# The script will sync to ~/Sites/drupal-claude-skills by default
-# Review changes in the open-source repo
-cd ~/Sites/drupal-claude-skills
-git diff
-
-# Commit if looks good
-git add .claude
-git commit -m "Sync latest skill updates from private repo"
+# 4. Commit and push
+git add .claude/skills/drupal-*
+git commit -m "Update Drupal skills"
 git push origin main
 ```
 
-The sync script (located in your private repo at `.claude/scripts/sync-from-private.sh`):
-- Creates a backup branch automatically
-- Copies only Drupal-specific skills (excludes GuitarGate skills)
-- Removes GuitarGate sections during sync
-- Syncs upstream scripts too
-- Shows you what changed
-- Lets you review before committing
+## Installation
 
-**Note**: The sync script is NOT included in this open-source repo - it only exists in your private repo.
+### Project-Level Installation
 
-## Publishing to GitHub
-
-When you're ready to open source this:
+Copy the `.claude` directory to your Drupal project root:
 
 ```bash
-cd ~/Sites/drupal-claude-skills
-
-# Create repository on GitHub first, then:
-git remote add origin git@github.com:YOUR_USERNAME/drupal-claude-skills.git
-
-# Push to GitHub
-git push -u origin main
+cp -r .claude /path/to/your/drupal/project/
 ```
 
-## Testing the Skills
+### Global Installation
 
-To test these skills work with Claude Code:
+Install globally to make skills available across all projects:
 
 ```bash
-# Option 1: Copy to a test Drupal project
-cp -r ~/Sites/drupal-claude-skills/.claude /path/to/test/drupal/project/
-
-# Option 2: Install globally for all projects
 mkdir -p ~/.config/claude/skills
-cp -r ~/Sites/drupal-claude-skills/.claude/skills/* ~/.config/claude/skills/
+cp -r .claude/skills/* ~/.config/claude/skills/
 ```
 
-## Maintenance Workflow
+### Via Claude Code Marketplace (Recommended)
 
-**Regular Updates**:
-1. Work on skills in your private GuitarGate repo
-2. When you make general Drupal improvements (not GuitarGate-specific)
-3. Run `./sync-from-private.sh`
-4. Review and commit changes
-5. Push to GitHub
+Coming soon: Install via Claude Code's plugin marketplace system.
 
-**What Gets Synced**:
-- ✅ drupal-at-your-fingertips
-- ✅ drupal-composer-updates
-- ✅ drupal-config-mgmt.md
-- ✅ ivangrynenko-cursorrules-drupal
-- ❌ guitargate-* (automatically excluded)
+## Updating Skills
 
-**GuitarGate References**:
-All GuitarGate-specific content was removed during initial setup. Future syncs will preserve this clean state as long as you only modify the Drupal-specific skills.
+Skills with upstream sources can be updated using the sync scripts:
+
+```bash
+# Update Drupal at Your Fingertips patterns
+./.claude/scripts/sync-d9book.sh
+
+# Update Ivan Grynenko security patterns
+./.claude/scripts/sync-ivan-rules.sh
+```
+
+These scripts automatically pull the latest content from upstream sources.
 
 ## Repository Structure
 
 ```
 drupal-claude-skills/
 ├── .claude/
-│   └── skills/
-│       ├── drupal-at-your-fingertips/
-│       │   ├── SKILL.md
-│       │   └── references/
-│       ├── drupal-composer-updates/
-│       │   ├── SKILL.md
-│       │   ├── references/
-│       │   └── examples/
-│       ├── drupal-config-mgmt.md
-│       └── ivangrynenko-cursorrules-drupal/
-│           ├── SKILL.md
-│           └── references/
+│   ├── skills/
+│   │   ├── drupal-at-your-fingertips/
+│   │   ├── drupal-contrib-mgmt/
+│   │   ├── drupal-config-mgmt/
+│   │   ├── drupal-ddev/
+│   │   ├── drupal-pantheon/
+│   │   └── ivangrynenko-cursorrules-drupal/
+│   └── scripts/
+│       ├── sync-d9book.sh
+│       └── sync-ivan-rules.sh
 ├── README.md
 ├── LICENSE
 ├── USAGE.md (this file)
-├── .gitignore
-└── sync-from-private.sh
+└── .gitignore
 ```
 
-## Next Steps
+## Usage
 
-1. **Test the sync script**:
-   ```bash
-   cd ~/Sites/drupal-claude-skills
-   ./sync-from-private.sh
-   # Should report "No changes detected"
-   ```
+Once installed, skills activate automatically based on context. For example:
 
-2. **Create GitHub repository** and push when ready
+- Working with services → `drupal-at-your-fingertips` activates
+- Updating modules → `drupal-contrib-mgmt` activates
+- Managing config → `drupal-config-mgmt` activates
+- Local development → `drupal-ddev` activates
+- Pantheon deployment → `drupal-pantheon` activates
+- Security review → `ivangrynenko-cursorrules-drupal` activates
 
-3. **Optional**: Add GitHub Actions for automated testing/validation
+You can also explicitly invoke a skill:
+```
+"Using drupal-at-your-fingertips patterns, show me how to create a custom entity"
+```
 
-4. **Share with community** on drupal.org, Reddit, etc.
+## Contributing
+
+Contributions are welcome! Please see the main [README.md](README.md) for contribution guidelines.
 
 ## Support
 
-For issues:
-- Check sync script output for errors
-- Verify source path is correct
-- Ensure git working directory is clean before syncing
-- Review git diff before committing
-
-## Contributing Back
-
-If others contribute improvements to the open-source version:
-
-```bash
-cd ~/Sites/drupal-claude-skills
-git pull origin main
-
-# Manually copy improvements back to private repo
-cp -r .claude/skills/drupal-* ~/Sites/gg/.claude/skills/
-cd ~/Sites/gg
-git add .claude/skills
-git commit -m "Sync community improvements from open-source repo"
-```
+- **Issues**: Report on [GitHub Issues](https://github.com/YOUR_USERNAME/drupal-claude-skills/issues)
+- **Content Questions**: Refer to upstream sources (Selwyn Polit, Ivan Grynenko)
+- **Claude Code Help**: See [Claude Code docs](https://docs.claude.com/claude-code)

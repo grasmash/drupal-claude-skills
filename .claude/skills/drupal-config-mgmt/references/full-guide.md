@@ -51,8 +51,8 @@ terminus drush {site}.{env} -- config:get config.name --format=yaml
 # Use grep to find specific settings
 terminus drush {site}.{env} -- config:get config.name 2>&1 | grep "setting_name"
 
-# Extract CTA text from hero block
-terminus drush guitargate8.dev -- config:get block.block.ggfresh_parallaxheroblock 2>&1 | grep -A2 "cta_text\|cta_url"
+# Extract CTA text from custom block
+terminus drush {site}.{env} -- config:get block.block.custom_hero 2>&1 | grep -A2 "cta_text\|cta_url"
 ```
 
 ### 3. Compare Local vs Remote Config
@@ -104,31 +104,24 @@ git commit -m "Update config from {env} environment"
 
 ```bash
 # 1. Get current values from dev
-echo "=== DEV: block.block.ggfresh_parallaxheroblock ===" && \
-  terminus drush guitargate8.dev -- config:get block.block.ggfresh_parallaxheroblock 2>&1 | grep -A2 "cta_text\|cta_url"
+echo "=== DEV: block.block.custom_hero ===" && \
+  terminus drush {site}.dev -- config:get block.block.custom_hero 2>&1 | grep -A2 "cta_text\|cta_url"
 
-echo "=== DEV: gg_core.stats_hero ===" && \
-  terminus drush guitargate8.dev -- config:get gg_core.stats_hero 2>&1 | grep "cta_text\|cta_url"
-
-echo "=== DEV: gg_core.teleport ===" && \
-  terminus drush guitargate8.dev -- config:get gg_core.teleport 2>&1 | grep "membership_text\|button_text"
+echo "=== DEV: mymodule.settings ===" && \
+  terminus drush {site}.dev -- config:get mymodule.settings 2>&1 | grep "cta_text\|cta_url"
 
 # 2. Get current local values
-echo "=== LOCAL: block.block.ggfresh_parallaxheroblock ===" && \
-  grep -A2 "cta_text:" config/default/block.block.ggfresh_parallaxheroblock.yml
+echo "=== LOCAL: block.block.custom_hero ===" && \
+  grep -A2 "cta_text:" config/default/block.block.custom_hero.yml
 
-echo "=== LOCAL: gg_core.stats_hero ===" && \
-  grep "cta_text\|cta_url" config/default/gg_core.stats_hero.yml
-
-echo "=== LOCAL: gg_core.teleport ===" && \
-  grep "membership_text\|button_text" config/default/gg_core.teleport.yml
+echo "=== LOCAL: mymodule.settings ===" && \
+  grep "cta_text\|cta_url" config/default/mymodule.settings.yml
 
 # 3. Manually edit files using Edit tool to match dev values
 
 # 4. Review and commit changes
-git diff config/default/block.block.ggfresh_parallaxheroblock.yml \
-  config/default/gg_core.stats_hero.yml \
-  config/default/gg_core.teleport.yml
+git diff config/default/block.block.custom_hero.yml \
+  config/default/mymodule.settings.yml
 
 git add config/default/*.yml
 git commit -m "Update CTA messaging from dev environment"
@@ -138,12 +131,12 @@ git commit -m "Update CTA messaging from dev environment"
 
 ```bash
 # 1. Export full config from remote
-terminus drush guitargate8.test -- config:get search_api.server.pantheon_search --format=yaml > /tmp/server.yml
-terminus drush guitargate8.test -- config:get search_api.index.mobile_content --format=yaml > /tmp/index.yml
+terminus drush {site}.test -- config:get search_api.server.pantheon_search --format=yaml > /tmp/server.yml
+terminus drush {site}.test -- config:get search_api.index.content --format=yaml > /tmp/index.yml
 
 # 2. Copy to local config
 cp /tmp/server.yml config/default/search_api.server.pantheon_search.yml
-cp /tmp/index.yml config/default/search_api.index.mobile_content.yml
+cp /tmp/index.yml config/default/search_api.index.content.yml
 
 # 3. If server was renamed, remove old config
 git rm config/default/search_api.server.old_name.yml
@@ -171,19 +164,16 @@ terminus drush {site}.{env} -- config:status
 
 ## Common Config Patterns
 
-### Hero/CTA Blocks
-- `block.block.ggfresh_parallaxheroblock` - Main hero block
+### Custom Blocks
+- `block.block.custom_hero` - Example custom block
   - `settings.cta_text` - CTA button text
   - `settings.cta_url` - CTA button URL
 
-### Custom GG Core Settings
-- `gg_core.stats_hero` - Stats section hero
+### Custom Module Settings
+- `mymodule.settings` - Example custom module settings
   - `cta_text` - CTA button text
   - `cta_url` - CTA button URL
-
-- `gg_core.teleport` - Teleport section
-  - `membership_text` - Membership status text
-  - `button_text` - Button text
+  - `feature_enabled` - Feature toggle
 
 ### Search API
 - `search_api.server.{server_name}` - Search server config
@@ -223,9 +213,9 @@ This can happen if a drush command or config import runs unexpectedly.
 
 ```bash
 # Get same config from different environments
-terminus drush guitargate8.dev -- config:get config.name > /tmp/dev.yml
-terminus drush guitargate8.test -- config:get config.name > /tmp/test.yml
-terminus drush guitargate8.live -- config:get config.name > /tmp/live.yml
+terminus drush {site}.dev -- config:get config.name > /tmp/dev.yml
+terminus drush {site}.test -- config:get config.name > /tmp/test.yml
+terminus drush {site}.live -- config:get config.name > /tmp/live.yml
 
 # Compare
 diff -u /tmp/dev.yml /tmp/test.yml
