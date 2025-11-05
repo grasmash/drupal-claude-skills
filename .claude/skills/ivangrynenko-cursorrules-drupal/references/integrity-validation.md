@@ -1,0 +1,135 @@
+# Drupal Software and Data Integrity Failures Standards (OWASP A08:2021)
+
+**Source**: [Ivan Grynenko - drupal-integrity-failures.mdc](https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-integrity-failures.mdc)
+**Author**: Ivan Grynenko
+**License**: MIT
+**OWASP Reference**: OWASP A08:2021
+
+---
+
+## Full Documentation
+
+**View online**: https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-integrity-failures.mdc
+
+This security pattern covers:
+- OWASP Top 10 classification
+- Common vulnerabilities and anti-patterns
+- Enforcement checks for code review
+- Secure coding examples
+- Best practices and remediation
+
+---
+
+## Raw Content
+
+```markdown
+---
+description: Detect and prevent software and data integrity failures in Drupal as defined in OWASP Top 10:2021-A08
+globs: *.php, *.install, *.module, *.inc, *.theme, *.yml, *.json
+alwaysApply: false
+---
+# Drupal Software and Data Integrity Failures Standards (OWASP A08:2021)
+
+This rule enforces security best practices to prevent software and data integrity failures in Drupal applications, as defined in OWASP Top 10:2021-A08.
+
+## Rule Details
+
+- **Name:** drupal_integrity_failures
+
+- **Description:** Detect and prevent software and data integrity failures in Drupal as defined in OWASP Top 10:2021-A08
+
+## Filters
+- file extension pattern: `\\.(php|inc|module|install|theme|yml|json)$`
+- file path pattern: `.*`
+
+## Enforcement Checks
+- Conditions:
+  - pattern `unserialize\\(\\$|unserialize\\([^,]+\\$|php_unserialize\\(\\$` – Insecure PHP deserialization detected. Use safer alternatives like JSON for data interchange or implement proper validation before deserialization.
+    - Pattern 1: Insecure deserialization
+  - pattern `eval\\(|assert\\(|create_function\\(` – Potentially dangerous code execution function detected. Avoid dynamic code execution whenever possible.
+    - Pattern 2: Unsafe use of eval or similar functions
+  - pattern `module_load_include\\(\\$|require(_once)?\\s*\\(\\s*\\$|include(_once)?\\s*\\(\\s*\\$` – Dynamic inclusion of files based on user input is dangerous. Use validated, allowlisted paths only.
+    - Pattern 3: Insecure plugin/module loading
+  - pattern `update\\.settings\\.yml|function [a-zA-Z0-9_]+_update_[0-9]+\\(\\)` – Ensure update hooks validate the integrity of updates and data transformations to prevent unauthorized modifications.
+    - Pattern 4: Missing update verification
+  - pattern `ConfigImporter|\\$config_importer|config_import|cmci` – Validate configuration before import to ensure integrity and detect potentially malicious changes.
+    - Pattern 5: Unsafe configuration imports
+  - pattern `drupal_http_request\\(|\\\\Drupal::httpClient\\(\\)->get\\(|curl_exec\\(` – Always validate data from remote sources before processing or storing it. Implement integrity checks for remote content.
+    - Pattern 6: Unchecked remote data
+  - pattern `composer\\.json` – Verify you're using secure Composer practices: validate package signatures, pin dependencies, and use composer.lock.
+    - Pattern 7: Insecure Composer usage
+  - pattern `INSERT\\s+INTO|UPDATE\\s+[a-zA-Z0-9_]+\\s+SET|db_update\\(|->update\\(|->insert\\(` – Direct database modifications should implement validation to preserve data integrity. Prefer using entity API.
+    - Pattern 8: Direct database modifications
+  - pattern `file_save_data\\(|file_save_upload\\(|file_copy\\(|file_move\\(` – Implement file integrity checking for uploaded or manipulated files to prevent malicious content.
+    - Pattern 9: Missing file integrity verification
+  - pattern `\\$entity\\s*=\\s*new\\s+[A-Za-z]+\\(|::create\\(\\$` – Validate all input used to create entity objects to maintain data integrity and prevent creating malicious entities.
+    - Pattern 10: Unsafe entity creation
+
+## Suggestions
+- Guidance:
+**Drupal Data & Software Integrity Best Practices:**
+
+1. **Secure Deserialization:**
+   - Avoid PHP's unserialize() with untrusted data entirely
+   - Use JSON or other structured formats for data interchange
+   - When deserialization is necessary, implement allowlists and validation
+   - Consider using Drupal's typed data API for structured data handling
+   - Avoid serializing sensitive data that could be tampered with
+
+2. **Update & Configuration Integrity:**
+   - Validate data before and after migrations/updates
+   - Implement checksums/hashing for critical configuration
+   - Use Drupal's Configuration Management system properly
+   - Monitor configuration changes for unauthorized modifications
+   - Implement proper workflow for configuration management
+
+3. **Dependency & Plugin Security:**
+   - Verify the integrity of downloaded modules and themes
+   - Use Composer with package signature verification
+   - Pin dependencies to specific versions in production
+   - Maintain awareness of security advisories
+   - Implement proper validation for plugin/module loading
+
+4. **CI/CD Pipeline Security:**
+   - Sign build artifacts
+   - Verify signatures during deployment
+   - Implement proper secrets management
+   - Control access to build and deployment systems
+   - Validate code changes through code reviews
+
+5. **Data Integrity Validation:**
+   - Use database constraints to enforce data integrity
+   - Implement validation at every layer of the application
+   - Add integrity checks for critical data flows
+   - Maintain audit logs for data modifications
+   - Regularly verify data consistency
+
+## Validation Checks
+- Conditions:
+  - pattern `json_encode|json_decode|\\\\Drupal::service\\('serialization\\.|->toArray\\(\\)` – Using safer serialization alternatives.
+    - Check 1: Secure serialization alternatives
+  - pattern `\\$entity->validate\\(\\)|\\$violations\\s*=\\s*\\$entity->validate\\(\\)` – Properly validating entity data.
+    - Check 2: Proper entity validation
+  - pattern `::validateSyncedConfig\\(|ConfigImporter::validate|->getUnprocessedConfiguration\\(\\)` – Implementing configuration validation.
+    - Check 3: Config verification
+  - pattern `file_validate_|FileValidatorInterface|\\$validators` – Using file validation mechanisms.
+    - Check 4: Safe file handling
+
+## Metadata
+- Priority: high
+- Version: 1.1
+- Tags: security, drupal, integrity, deserialization, owasp, language:php, framework:drupal, category:security, subcategory:integrity, standard:owasp-top10, risk:a08-integrity-failures
+## References
+- https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/
+- https://www.drupal.org/docs/develop/security-in-drupal/drupal-8-sanitizing-output
+- https://www.drupal.org/docs/8/api/configuration-api/configuration-api-overview
+- https://www.drupal.org/docs/develop/using-composer
+
+ 
+```
+
+---
+
+---
+
+**Last verified**: 2025-10-31

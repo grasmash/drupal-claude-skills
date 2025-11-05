@@ -1,0 +1,137 @@
+# Drupal Security Logging and Monitoring Failures Standards (OWASP A09:2021)
+
+**Source**: [Ivan Grynenko - drupal-logging-failures.mdc](https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-logging-failures.mdc)
+**Author**: Ivan Grynenko
+**License**: MIT
+**OWASP Reference**: OWASP A09:2021
+
+---
+
+## Full Documentation
+
+**View online**: https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-logging-failures.mdc
+
+This security pattern covers:
+- OWASP Top 10 classification
+- Common vulnerabilities and anti-patterns
+- Enforcement checks for code review
+- Secure coding examples
+- Best practices and remediation
+
+---
+
+## Raw Content
+
+```markdown
+---
+description: Detect and prevent security logging and monitoring failures in Drupal as defined in OWASP Top 10:2021-A09
+globs: *.php, *.install, *.module, *.inc, *.theme, *.yml
+alwaysApply: false
+---
+# Drupal Security Logging and Monitoring Failures Standards (OWASP A09:2021)
+
+This rule enforces security best practices to prevent logging and monitoring failures in Drupal applications, as defined in OWASP Top 10:2021-A09.
+
+## Rule Details
+
+- **Name:** drupal_logging_failures
+
+- **Description:** Detect and prevent security logging and monitoring failures in Drupal as defined in OWASP Top 10:2021-A09
+
+## Filters
+- file extension pattern: `\\.(php|inc|module|install|theme|yml)$`
+- file path pattern: `.*`
+
+## Enforcement Checks
+- Conditions:
+  - pattern `(delete|update|create|execute|grant|revoke|config|schema).*function[^}]*\\{(?![^}]*(log|watchdog|logger))` – Critical operations should include logging. Implement proper logging for security-relevant actions.
+    - Pattern 1: Missing critical event logging
+  - pattern `@include|@require|@eval|error_reporting\\(0\\)|ini_set\\(['\"](mdc:display_errors|log_errors)['\"],\\s*['\"]0['\"]\\)` – Avoid suppressing errors and warnings. Implement proper error handling and logging instead.
+    - Pattern 2: Suppressed error logging
+  - pattern `catch\\s*\\([^{]*\\)\\s*\\{(?![^}]*log|[^}]*watchdog|[^}]*logger)` – Exceptions should be properly logged, especially in security-critical sections.
+    - Pattern 3: Improper exception handling without logging
+  - pattern `dblog\\.settings\\.yml|syslog\\.settings\\.yml|logging\\.settings\\.yml` – Ensure logging is properly configured and not disabled. Verify log verbosity and retention policies.
+    - Pattern 4: Disabled watchdog
+  - pattern `(login|authenticate|logout|password).*function[^}]*\\{(?![^}]*(log|watchdog|logger))` – Authentication events should always be logged for security monitoring and auditing.
+    - Pattern 5: Missing authentication event logging
+  - pattern `AccessResult::(allowed|forbidden|neutral)\\([^)]*\\)(?![^;]*(log|watchdog|logger))` – Consider logging significant access control decisions, especially denials, for security monitoring.
+    - Pattern 6: Failure to log access control decisions
+  - pattern `(file_save|file_delete|file_move|file_copy)[^;]*;(?![^;]*(log|watchdog|logger))` – File operations should be logged, especially for security-sensitive files.
+    - Pattern 7: Missing logging in file operations
+  - pattern `(\\->log|watchdog)\\([^,)]*,[^,)]*\\)` – Log messages should include sufficient context and detail for effective security monitoring.
+    - Pattern 8: Insufficient detail in log messages
+  - pattern `\\$config->set\\([^;]*;(?![^;]*(log|watchdog|logger))` – Configuration changes should be logged to maintain an audit trail and detect unauthorized changes.
+    - Pattern 9: Failure to log configuration changes
+  - pattern `class\\s+[a-zA-Z0-9_]+Resource.+\\{[^}]*function\\s+[a-zA-Z0-9_]+\\([^{]*\\)\\s*\\{(?![^}]*(log|watchdog|logger))` – API endpoint access should be logged for security monitoring, especially for sensitive operations.
+    - Pattern 10: Missing logs for API access
+
+## Suggestions
+- Guidance:
+**Drupal Security Logging & Monitoring Best Practices:**
+
+1. **Comprehensive Logging Implementation:**
+   - Use Drupal's Logger Factory service: `\Drupal::logger('module_name')`
+   - Implement proper log levels: emergency, alert, critical, error, warning, notice, info, debug
+   - Include context in log messages with relevant identifiers and information
+   - Log security-relevant events consistently across the application
+   - Structure log messages to facilitate automated analysis
+
+2. **Critical Events to Log:**
+   - Authentication events (login attempts, failures, logouts)
+   - Access control decisions (particularly denials)
+   - All administrative actions
+   - Data modification operations on sensitive information
+   - Configuration and settings changes
+   - File operations (uploads, downloads of sensitive content)
+   - API access and usage
+
+3. **Logging Configuration:**
+   - Configure appropriate log retention periods based on security requirements
+   - Implement log rotation to maintain performance
+   - Consider using syslog for centralized logging
+   - Protect log files from unauthorized access and modification
+   - Configure appropriate verbosity for different environments
+
+4. **Monitoring Implementation:**
+   - Define security-relevant log patterns to monitor
+   - Implement log aggregation and analysis
+   - Set up alerts for suspicious activity patterns
+   - Establish response procedures for security events
+   - Consider integration with SIEM solutions
+
+5. **Error Handling:**
+   - Log exceptions with appropriate error levels
+   - Include stack traces in development but not production
+   - Implement custom error handlers that ensure proper logging
+   - Avoid suppressing errors that might indicate security issues
+   - Monitor for patterns in error logs that could indicate attacks
+
+## Validation Checks
+- Conditions:
+  - pattern `\\\\Drupal::logger\\([^)]+\\)->\\w+\\(|\\$this->logger->\\w+\\(` – Using Drupal's logger service correctly.
+    - Check 1: Proper logger usage
+  - pattern `->\\w+\\([^,]+,\\s*[^,]+,\\s*\\[` – Including context information in log messages.
+    - Check 2: Context in log messages
+  - pattern `dblog\\.settings|syslog\\.settings|logging\\.yml` – Configuring logging appropriately.
+    - Check 3: Logging configuration
+  - pattern `catch[^{]*\\{[^}]*logger|catch[^{]*\\{[^}]*watchdog|catch[^{]*\\{[^}]*log` – Properly logging exceptions.
+    - Check 4: Exception logging
+
+## Metadata
+- Priority: high
+- Version: 1.1
+- Tags: security, drupal, logging, monitoring, owasp, language:php, framework:drupal, category:security, subcategory:logging, standard:owasp-top10, risk:a09-logging-monitoring
+## References
+- https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/
+- https://www.drupal.org/docs/8/api/logging-api/overview
+- https://www.drupal.org/docs/develop/security-in-drupal/writing-secure-code-for-drupal
+- https://www.drupal.org/docs/8/modules/syslog
+
+ 
+```
+
+---
+
+---
+
+**Last verified**: 2025-10-31

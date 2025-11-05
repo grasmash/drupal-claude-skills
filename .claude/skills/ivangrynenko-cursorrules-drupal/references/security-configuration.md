@@ -1,0 +1,130 @@
+# Drupal Security Misconfiguration Standards (OWASP A05:2021)
+
+**Source**: [Ivan Grynenko - drupal-security-misconfiguration.mdc](https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-security-misconfiguration.mdc)
+**Author**: Ivan Grynenko
+**License**: MIT
+**OWASP Reference**: OWASP A05:2021
+
+---
+
+## Full Documentation
+
+**View online**: https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-security-misconfiguration.mdc
+
+This security pattern covers:
+- OWASP Top 10 classification
+- Common vulnerabilities and anti-patterns
+- Enforcement checks for code review
+- Secure coding examples
+- Best practices and remediation
+
+---
+
+## Raw Content
+
+```markdown
+---
+description: Detect and prevent security misconfigurations in Drupal as defined in OWASP Top 10:2021-A05
+globs: *.php, *.install, *.module, *.inc, *.theme, *.yml, *.info
+alwaysApply: false
+---
+# Drupal Security Misconfiguration Standards (OWASP A05:2021)
+
+This rule enforces security best practices to prevent misconfiguration vulnerabilities in Drupal applications, as defined in OWASP Top 10:2021-A05.
+
+## Rule Details
+
+- **Name:** drupal_security_misconfiguration
+
+- **Description:** Detect and prevent security misconfigurations in Drupal as defined in OWASP Top 10:2021-A05
+
+## Filters
+- file extension pattern: `\\.(php|inc|module|install|theme|yml|info\\.yml)$`
+- file path pattern: `.*`
+
+## Enforcement Checks
+- Conditions:
+  - pattern `\\$settings\\['update_free_access'\\]\\s*=\\s*TRUE|\\$settings\\['cache'\\]\\s*=\\s*FALSE|\\$settings\\['rebuild_access'\\]\\s*=\\s*TRUE|\\$config\\['system\\.performance'\\]\\['cache'\\]\\s*=\\s*FALSE` – Development settings detected in production code. Ensure these settings are only enabled in development environments.
+    - Pattern 1: Development settings in production code
+  - pattern `settings\\.php|settings\\.local\\.php` – Verify that $settings['trusted_host_patterns'] is properly configured to prevent HTTP Host header attacks.
+    - Pattern 2: Missing or weak trusted host patterns
+  - pattern `\\$config\\['system\\.logging'\\]\\['error_level'\\]\\s*=\\s*'verbose'|ini_set\\('display_errors'\\s*,\\s*'1'\\)|error_reporting\\(E_ALL\\)` – Error display should be disabled in production. Use 'hide' for error_level in production.
+    - Pattern 3: Debugging/error display enabled
+  - pattern `\\$settings\\['file_chmod_directory'\\]\\s*=\\s*0777|\\$settings\\['file_chmod_file'\\]\\s*=\\s*0666` – Excessively permissive file permissions detected. Use more restrictive permissions.
+    - Pattern 4: Insecure file permissions settings
+  - pattern `\\.htaccess|sites/default/default\\.settings\\.php` – Ensure Content-Security-Policy headers are properly configured to prevent XSS attacks.
+    - Pattern 5: Disabled or misconfigured CSP headers
+  - pattern `session\\.cookie_secure\\s*=\\s*0|session\\.cookie_httponly\\s*=\\s*0|\\$settings\\['cookie_secure_only'\\]\\s*=\\s*FALSE` – Session cookies should be secure and HTTP-only in production environments.
+    - Pattern 6: Insecure session cookie settings
+  - pattern `settings\\.php` – Ensure $settings['file_private_path'] is properly configured for storing sensitive files.
+    - Pattern 7: Missing or misconfigured private file path
+  - pattern `core\\.extension\\.yml` – Check for development modules (devel, webprofiler, etc.) that should not be enabled in production.
+    - Pattern 8: Development modules enabled in production
+  - pattern `function\\s+[a-zA-Z0-9_]+_install\\(\\)` – Remove or secure default/demo content and users in production environments.
+    - Pattern 9: Default or demo content in production
+  - pattern `\\.htaccess|nginx\\.conf` – Verify X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, and Referrer-Policy headers are properly configured.
+    - Pattern 10: Missing or misconfigured security headers
+
+## Suggestions
+- Guidance:
+**Drupal Security Configuration Best Practices:**
+
+1. **Environment-Specific Configurations:**
+   - Use `settings.local.php` for environment-specific settings
+   - Maintain separate development, staging, and production configurations
+   - Never enable development settings in production: update_free_access, rebuild_access, etc.
+   - Use environment variables or secrets management for sensitive information
+
+2. **Essential Security Settings:**
+   - Configure trusted_host_patterns to prevent HTTP Host header attacks
+   - Set secure file permissions (e.g., 0755 for directories, 0644 for files)
+   - Configure private file path for sensitive uploads
+   - Set file_scan_ignore_directories to prevent public access to sensitive directories
+   - Implement secure session cookie settings (HTTPOnly, Secure, SameSite)
+
+3. **Error Handling:**
+   - Disable verbose error reporting in production with $config['system.logging']['error_level'] = 'hide'
+   - Configure custom error pages that don't leak system information
+   - Implement appropriate logging without exposing sensitive data
+
+4. **Security Headers:**
+   - Set Content-Security-Policy to restrict resource origins
+   - Configure X-Frame-Options to prevent clickjacking
+   - Enable X-Content-Type-Options to prevent MIME-type sniffing
+   - Set Referrer-Policy to control information in HTTP referers
+
+5. **Module & Extension Security:**
+   - Disable and uninstall unnecessary modules in production
+   - Keep core and contributed modules updated
+   - Remove development modules from production (devel, webprofiler, etc.)
+   - Implement proper configuration management workflows
+
+## Validation Checks
+- Conditions:
+  - pattern `\\$settings\\['trusted_host_patterns'\\]\\s*=\\s*\\[\\s*['\"][^\"']+['\"]` – Trusted host patterns are properly configured.
+    - Check 1: Proper trusted host patterns
+  - pattern `\\$settings\\['cookie_secure_only'\\]\\s*=\\s*TRUE|session\\.cookie_secure\\s*=\\s*1` – Secure cookie settings are properly configured.
+    - Check 2: Secure session cookie settings
+  - pattern `\\$settings\\['file_private_path'\\]\\s*=\\s*(\"|')[^\"']+(\"|')` – Private file path is configured for sensitive files.
+    - Check 3: Private file path configuration
+  - pattern `\\$config\\['system\\.logging'\\]\\['error_level'\\]\\s*=\\s*'hide'` – Error reporting is properly configured for production.
+    - Check 4: Production error settings
+
+## Metadata
+- Priority: high
+- Version: 1.1
+- Tags: security, drupal, configuration, misconfiguration, owasp, language:php, framework:drupal, category:security, subcategory:configuration, standard:owasp-top10, risk:a05-misconfiguration
+## References
+- https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+- https://www.drupal.org/docs/security-in-drupal/securing-your-site
+- https://www.drupal.org/docs/security-in-drupal/drupal-security-best-practices
+- https://www.drupal.org/docs/8/security/writing-secure-code-for-drupal-8
+
+ 
+```
+
+---
+
+---
+
+**Last verified**: 2025-10-31

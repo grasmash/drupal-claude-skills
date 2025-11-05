@@ -1,0 +1,122 @@
+# Drupal Broken Access Control Security Standards (OWASP A01:2021)
+
+**Source**: [Ivan Grynenko - drupal-broken-access-control.mdc](https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-broken-access-control.mdc)
+**Author**: Ivan Grynenko
+**License**: MIT
+**OWASP Reference**: OWASP A01:2021
+
+---
+
+## Full Documentation
+
+**View online**: https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-broken-access-control.mdc
+
+This security pattern covers:
+- OWASP Top 10 classification
+- Common vulnerabilities and anti-patterns
+- Enforcement checks for code review
+- Secure coding examples
+- Best practices and remediation
+
+---
+
+## Raw Content
+
+```markdown
+---
+description: Detect and prevent broken access control vulnerabilities in Drupal as defined in OWASP Top 10:2021-A01
+globs: *.php, *.install, *.module, *.inc, *.theme
+alwaysApply: false
+---
+# Drupal Broken Access Control Security Standards (OWASP A01:2021)
+
+This rule enforces security best practices to prevent broken access control vulnerabilities in Drupal applications, as defined in OWASP Top 10:2021-A01.
+
+## Rule Details
+
+- **Name:** drupal_broken_access_control
+
+- **Description:** Detect and prevent broken access control vulnerabilities in Drupal as defined in OWASP Top 10:2021-A01
+
+## Filters
+- file extension pattern: `\\.(php|inc|module|install|theme)$`
+- file path pattern: `(modules|themes|profiles)/custom`
+
+## Enforcement Checks
+- Conditions:
+  - pattern `\\s*\\$routes\\['[^']*'\\]\\s*=\\s*.*(?!_access|access_callback|requirements)` – Route definition is missing access control. Add '_permission', '_role', '_access', or custom access check in requirements.
+    - Pattern 1: Missing access checks in routes
+  - pattern `user_access\\(` – user_access() is deprecated. Use $account->hasPermission() or proper dependency injection with AccessResult methods.
+    - Pattern 2: Using user_access() instead of more secure methods
+  - pattern `(\\$user->id\\(\\)|\\$user->uid)\\s*===?\\s*1` – Avoid hardcoded checks against user ID 1. Use role-based permissions or proper access control services.
+    - Pattern 3: Hard-coded user ID checks
+  - pattern `\\$entity->(?!access)(save|delete|update)\\(\\)` – Entity operation without prior access check. Use \$entity->access('operation') before performing operations.
+    - Pattern 4: Missing access check on entity operations
+  - pattern `\\\\Drupal::currentUser\\(\\)` – Avoid using \\Drupal::currentUser() directly. Inject the current_user service for better testability and security.
+    - Pattern 5: Using Drupal::currentUser() directly in services
+  - pattern `class [A-Za-z0-9_]+Controller.+extends ControllerBase[^}]+public function [a-zA-Z0-9_]+\\([^{]*\\)\\s*\\{(?![^}]*access)` – Controller method lacks explicit access checking. Add checks via route requirements or within the controller method.
+    - Pattern 6: Missing access checks in controllers
+  - pattern `\\$entity->set\\([^)]+\\)\\s*;(?![^;]*access)` – Direct field value manipulation without access check. Verify entity field access before manipulation.
+    - Pattern 7: Direct field value manipulation without access check
+  - pattern `@RestResource\\([^)]*\\)(?![^{]*_access|access_callback)` – REST resource lacks access controls. Add access checks via annotations or in methods.
+    - Pattern 8: Unprotected REST endpoints
+  - pattern `\\$_SERVER\\['REMOTE_ADDR'\\]\\s*===?\\s*` – IP-based access control is insufficient. Use proper Drupal permission system instead.
+    - Pattern 9: Insecure access check by client IP
+  - pattern `#cache\\['contexts'\\]\\s*=\\s*\\[[^\\]]*'user'[^\\]]*\\]` – Using 'user' cache context without proper access checks may expose content to unauthorized users.
+    - Pattern 10: Allow bypassing cache for authenticated users without proper checks
+
+## Suggestions
+- Guidance:
+**Drupal Access Control Best Practices:**
+
+1. **Route Access Controls:**
+   - Always define access requirements in route definitions
+   - Use permission-based access checks: '_permission', '_role', '_entity_access'
+   - Implement custom access checkers implementing AccessInterface
+
+2. **Entity Access Controls:**
+   - Always check entity access: $entity->access('view'|'update'|'delete') 
+   - Use EntityAccessControlHandler for consistent access control
+   - Respect entity field access with $entity->get('field')->access('view'|'edit')
+
+3. **Controller Security:**
+   - Inject and use proper services rather than \Drupal static calls
+   - Add explicit access checks within controller methods
+   - Use AccessResult methods (allowed, forbidden, neutral) with proper caching metadata
+
+4. **Service Security:**
+   - Inject AccountProxyInterface rather than calling currentUser() directly
+   - Use dependency injection for access-related services
+   - Implement session-based CSRF protection with form tokens
+
+5. **REST/API Security:**
+   - Implement OAuth or proper authentication
+   - Define specific permissions for REST operations
+   - Never rely solely on client-side access control
+
+## Validation Checks
+- Conditions:
+  - pattern `AccessResult::(allowed|forbidden|neutral)\\(\\)(?=.*addCacheContexts)` – Access check is properly implemented with cache metadata.
+    - Check 1: Ensuring proper access check implementation
+  - pattern `function hook_entity_access\\([^)]*\\)\\s*\\{[^}]*return AccessResult` – Entity access hook is correctly returning AccessResult.
+    - Check 2: Proper hook_entity_access implementation
+  - pattern `_permission|_role|_access|_entity_access|_custom_access` – Route has proper access controls defined.
+    - Check 3: Properly secured route access
+  - pattern `@RestResource\\(.*,\\s*authentication\\s*=\\s*\\{[^}]+\\}` – REST Resource has authentication configured.
+    - Check 4: Secure REST implementation
+
+## Metadata
+- Priority: high
+- Version: 1.1
+- Tags: security, drupal, access-control, permissions, owasp, language:php, framework:drupal, category:security, subcategory:access-control, standard:owasp-top10, risk:a01-broken-access-control
+## References
+- https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+- https://www.drupal.org/docs/8/api/routing-system/access-checking-on-routes
+- https://www.drupal.org/docs/8/api/entity-api/entity-access-api
+```
+
+---
+
+---
+
+**Last verified**: 2025-10-31

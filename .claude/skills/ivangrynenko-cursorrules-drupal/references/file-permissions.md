@@ -1,0 +1,141 @@
+# Drupal File Permissions Security
+
+**Source**: [Ivan Grynenko - drupal-file-permissions.mdc](https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-file-permissions.mdc)
+**Author**: Ivan Grynenko
+**License**: MIT
+**OWASP Reference**: 
+
+---
+
+## Full Documentation
+
+**View online**: https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-file-permissions.mdc
+
+This security pattern covers:
+- OWASP Top 10 classification
+- Common vulnerabilities and anti-patterns
+- Enforcement checks for code review
+- Secure coding examples
+- Best practices and remediation
+
+---
+
+## Raw Content
+
+```markdown
+---
+description: Drupal file permissions security standards
+globs: *.dockerfile, *.sh, docker-compose.yml, Dockerfile
+---
+# Drupal File Permissions Security
+
+Standards for securing Drupal file permissions in Docker environments and production servers, ensuring proper security while maintaining functionality.
+
+## Rule Details
+
+- **Name:** drupal_file_permissions
+
+- **Description:** Enforce secure file permissions for Drupal sites/default directory and critical files
+
+## Filters
+- file extension pattern: `\\.(dockerfile|sh|yml)$`
+- file name: `^Dockerfile$|^docker-compose\\.yml$`
+- content: `(?i)chmod|chown|drupal|settings\\.php|services\\.yml`
+
+## Enforcement Checks
+- Conditions:
+  - pattern `chmod\\s+(?!755)\\d+\\s+[^\\n]*sites\\/default(?![^\\n]*files)` – sites/default directory should have 755 permissions (read-only for group/others)
+  - pattern `chmod\\s+(?!444)\\d+\\s+[^\\n]*settings\\.php` – settings.php should have 444 permissions (read-only for everyone)
+  - pattern `chmod\\s+(?!444)\\d+\\s+[^\\n]*services\\.yml` – services.yml should have 444 permissions (read-only for everyone)
+  - pattern `chmod\\s+(?!755)\\d+\\s+[^\\n]*sites\\/default\\/files` – sites/default/files directory should have 755 permissions with proper ownership
+  - pattern `chown\\s+(?!www-data:www-data)[^\\s]+\\s+[^\\n]*sites\\/default\\/files` – sites/default/files should be owned by the web server user (www-data:www-data)
+
+## Suggestions
+- Guidance:
+## Drupal File Permissions Security Best Practices
+
+### 1. Critical File Permissions
+- **sites/default directory**: 755 (drwxr-xr-x)
+- **settings.php**: 444 (r--r--r--)
+- **services.yml**: 444 (r--r--r--)
+- **settings.local.php**: 444 (r--r--r--)
+- **sites/default/files**: 755 (drwxr-xr-x)
+- **sites/default/files/** (contents): 644 (rw-r--r--) for files, 755 (drwxr-xr-x) for directories
+
+### 2. Ownership Configuration
+- **Web root**: application user (varies by environment)
+- **sites/default/files**: web server user (www-data:www-data)
+
+### 3. Implementation in Dockerfile
+```dockerfile
+# Set proper permissions for Drupal
+RUN mkdir -p /app/${WEBROOT}/sites/default/files && \
+    chown www-data:www-data /app/${WEBROOT}/sites/default/files && \
+    chmod 755 /app/${WEBROOT}/sites/default && \
+    chmod 444 /app/${WEBROOT}/sites/default/settings.php && \
+    chmod 444 /app/${WEBROOT}/sites/default/services.yml && \
+    find /app/${WEBROOT}/sites/default/files -type d -exec chmod 755 {} \\; && \
+    find /app/${WEBROOT}/sites/default/files -type f -exec chmod 644 {} \\;
+```
+
+### 4. Permission Fix Script
+Create a script at `/app/scripts/custom/fix-drupal-permissions.sh`:
+```bash
+#!/bin/bash
+
+# Exit on error
+set -e
+
+WEBROOT=${WEBROOT:-web}
+
+echo "Setting Drupal file permissions..."
+
+# Ensure directories exist
+mkdir -p /app/${WEBROOT}/sites/default/files
+
+# Set ownership
+chown www-data:www-data /app/${WEBROOT}/sites/default/files
+
+# Set directory permissions
+chmod 755 /app/${WEBROOT}/sites/default
+chmod 755 /app/${WEBROOT}/sites/default/files
+find /app/${WEBROOT}/sites/default/files -type d -exec chmod 755 {} \;
+
+# Set file permissions
+chmod 444 /app/${WEBROOT}/sites/default/settings.php
+[ -f /app/${WEBROOT}/sites/default/services.yml ] && chmod 444 /app/${WEBROOT}/sites/default/services.yml
+[ -f /app/${WEBROOT}/sites/default/settings.local.php ] && chmod 444 /app/${WEBROOT}/sites/default/settings.local.php
+find /app/${WEBROOT}/sites/default/files -type f -exec chmod 644 {} \;
+
+echo "Drupal file permissions set successfully."
+```
+
+### 5. Verify Permissions
+```bash
+# Check file permissions
+ahoy cli "ls -la /app/${WEBROOT}/sites/default"
+ahoy cli "ls -la /app/${WEBROOT}/sites/default/files"
+
+# Check Drupal status
+ahoy drush status-report | grep -i "protected"
+```
+
+### 6. Security Considerations
+- Never set 777 permissions on any Drupal files or directories
+- Temporary files should be stored in private file system when possible
+- Use Drupal's private file system for sensitive uploads
+- Implement file access controls through Drupal's permission system
+- Consider using file encryption for highly sensitive data
+
+## Metadata
+- Priority: high
+- Version: 1.2
+
+ 
+```
+
+---
+
+---
+
+**Last verified**: 2025-10-31

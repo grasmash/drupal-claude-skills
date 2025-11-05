@@ -1,0 +1,130 @@
+# Drupal Cryptographic Failures Security Standards (OWASP A02:2021)
+
+**Source**: [Ivan Grynenko - drupal-cryptographic-failures.mdc](https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-cryptographic-failures.mdc)
+**Author**: Ivan Grynenko
+**License**: MIT
+**OWASP Reference**: OWASP A02:2021
+
+---
+
+## Full Documentation
+
+**View online**: https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules/drupal-cryptographic-failures.mdc
+
+This security pattern covers:
+- OWASP Top 10 classification
+- Common vulnerabilities and anti-patterns
+- Enforcement checks for code review
+- Secure coding examples
+- Best practices and remediation
+
+---
+
+## Raw Content
+
+```markdown
+---
+description: Detect and prevent cryptographic failures in Drupal as defined in OWASP Top 10:2021-A02
+globs: *.php, *.install, *.module, *.inc, *.theme
+alwaysApply: false
+---
+# Drupal Cryptographic Failures Security Standards (OWASP A02:2021)
+
+This rule enforces security best practices to prevent cryptographic failures in Drupal applications, as defined in OWASP Top 10:2021-A02.
+
+## Rule Details
+
+- **Name:** drupal_cryptographic_failures
+
+- **Description:** Detect and prevent cryptographic failures in Drupal as defined in OWASP Top 10:2021-A02
+
+## Filters
+- file extension pattern: `\\.(php|inc|module|install|theme)$`
+- file path pattern: `(modules|themes|profiles|core)/.*`
+
+## Enforcement Checks
+- Conditions:
+  - pattern `(md5|sha1)\\([^)]*\\)` – Weak hash algorithm detected. Use password_hash() for passwords or hash('sha256'/'sha512') for other data.
+    - Pattern 1: Use of weak hash algorithms
+  - pattern `(password|key|token|secret|credentials|pwd)\\s*=\\s*['\"][^'\"]+['\"]` – Hardcoded credentials or sensitive keys detected. Use Drupal's State API, key module, or environment variables.
+    - Pattern 2: Hardcoded credentials or keys
+  - pattern `\\$user->setPassword\\((?!password_hash|\\$hash)[^)]+\\)` – Never store plaintext passwords. Drupal handles password hashing internally.
+    - Pattern 3: Plaintext password storage
+  - pattern `file_(get|put)_contents\\([^,]+,\\s*[^,]+\\)` – Consider encrypting sensitive file contents using Drupal's encryption API or PHP's openssl functions.
+    - Pattern 4: Improper file encryption
+  - pattern `\\$settings\\[['\"](mdc:?!hash_salt|update_free_access)[^]]+\\]\\s*=\\s*['\"][^\"']+['\"]` – Sensitive data in settings.php should be moved to environment variables or settings.local.php.
+    - Pattern 5: Unprotected sensitive data in settings
+  - pattern `(rand|mt_rand|array_rand)\\(` – Insecure random number generation. Use random_bytes() or random_int() for cryptographic purposes.
+    - Pattern 6: Insecure random number generation
+  - pattern `'#cache'|'cache'` – Ensure HTTPS is enforced for cached pages containing sensitive information.
+    - Pattern 7: Missing HTTPS enforcement
+  - pattern `(->set|->get)\\('field_[^']*(?:password|ssn|credit|card|secret|key|token|credentials|pwd)[^']*'\\)` – Consider using field encryption for sensitive data fields.
+    - Pattern 8: Missing encryption for content with private information
+  - pattern `session_(start|regenerate_id)` – Avoid custom session handling. Use Drupal's session management services.
+    - Pattern 9: Custom session handling without proper security
+  - pattern `\\$token\\s*=\\s*.*?\\$[^;]+;(?![^;]*expir|[^;]*valid)` – API tokens should include expiration time or rotation mechanism.
+    - Pattern 10: API tokens without expiration or rotation
+
+## Suggestions
+- Guidance:
+**Drupal Cryptographic Security Best Practices:**
+
+1. **Secure Data Storage:**
+   - Use Drupal's Key module for storing encryption keys
+   - Store sensitive configuration in environment variables or settings.local.php
+   - Use Drupal's State API for non-configuration sensitive data
+   - Never store plaintext sensitive information in the database
+
+2. **Encryption and Hashing:**
+   - Use Drupal's password hashing system, which uses password_hash() internally
+   - For non-password data hashing, use SHA-256 or SHA-512
+   - Use the Encrypt module or PHP's openssl_encrypt() with proper algorithms (AES-256-GCM)
+   - Always use proper salting techniques
+
+3. **Communication Security:**
+   - Enforce HTTPS site-wide using settings.php configuration
+   - Use secure cookies (secure, HttpOnly, SameSite)
+   - Implement proper Content-Security-Policy headers
+   - Use TLS 1.2+ for all connections
+
+4. **API Security:**
+   - Use OAuth or JWT with proper signature verification
+   - Implement token expiration and rotation
+   - Use HMAC for API request signatures when appropriate
+   - Never expose internal encryption keys through APIs
+
+5. **Configuration Best Practices:**
+   - Regularly rotate encryption keys and credentials
+   - Implement secure key storage using key management services
+   - Monitor and log cryptographic operations 
+   - Maintain an inventory of cryptographic algorithms in use
+
+## Validation Checks
+- Conditions:
+  - pattern `UserInterface::PASSWORD_|password_hash\\(` – Using Drupal's password system correctly.
+    - Check 1: Proper password handling
+  - pattern `random_bytes|random_int|\\\\Drupal::service\\('random'\\)` – Using secure random generation methods.
+    - Check 2: Proper random generation
+  - pattern `getenv\\('|\\$_ENV\\['|\\$_SERVER\\['|settings\\.local\\.php` – Using environment variables or local settings correctly.
+    - Check 3: Secure settings
+  - pattern `openssl_encrypt\\(|\\\\Drupal::service\\('encryption'\\)` – Using proper encryption methods.
+    - Check 4: Proper encryption usage
+
+## Metadata
+- Priority: high
+- Version: 1.1
+- Tags: security, drupal, cryptography, encryption, owasp, language:php, framework:drupal, category:security, subcategory:cryptography, standard:owasp-top10, risk:a02-cryptographic-failures
+## References
+- https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
+- https://www.drupal.org/docs/security-in-drupal
+- https://www.drupal.org/project/key
+- https://www.drupal.org/project/encrypt
+
+ 
+```
+
+---
+
+---
+
+**Last verified**: 2025-10-31
