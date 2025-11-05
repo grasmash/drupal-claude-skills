@@ -44,7 +44,7 @@ Comprehensive guide for managing Drupal contributed modules, including:
 Safe patterns for inspecting and syncing Drupal configuration:
 - Read-only config inspection techniques
 - Avoiding accidental config imports
-- Terminus drush patterns with `--no` flag
+- Safe remote drush patterns with `--no` flag
 - Syncing config between environments
 - Manual config editing workflows
 
@@ -235,7 +235,7 @@ Future skills to add:
 - [ ] API-first/Headless Drupal patterns
 - [ ] Drupal Commerce patterns
 - [ ] Migration patterns (Migrate API, Drupal 7 → 10)
-- [ ] Platform hosting patterns (Acquia, Platform.sh, Pantheon)
+- [ ] Platform-specific hosting patterns (Acquia, Platform.sh, etc.)
 
 Want to contribute a skill? See [CONTRIBUTING.md](CONTRIBUTING.md)!
 

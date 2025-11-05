@@ -4,12 +4,11 @@
 
 A comprehensive collection of Drupal development skills for Claude Code:
 
-1. **Six Drupal Skills**:
+1. **Five Drupal Skills**:
    - `drupal-at-your-fingertips` - 50+ Drupal development patterns
    - `drupal-contrib-mgmt` - Composer-based module management
    - `drupal-config-mgmt` - Safe configuration management
    - `drupal-ddev` - Local development environment
-   - `drupal-pantheon` - Pantheon platform workflows
    - `ivangrynenko-cursorrules-drupal` - OWASP security patterns
 
 2. **Documentation**:
