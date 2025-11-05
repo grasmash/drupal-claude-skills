@@ -42,9 +42,20 @@ Safe patterns for inspecting and syncing Drupal configuration:
 - Syncing config between environments
 - Manual config editing workflows
 
-**Location**: `.claude/skills/drupal-config-mgmt.md`
+**Location**: `.claude/skills/drupal-config-mgmt/`
 
-### 4. Ivan Grynenko - Drupal Security Patterns
+### 4. Drupal Pantheon Platform
+Pantheon hosting platform patterns and workflows:
+- pantheon.yml configuration (PHP, database, Solr versions)
+- Terminus CLI safe command patterns
+- Environment management (dev, test, live, multidev)
+- Deployment workflows and best practices
+- Quicksilver platform hooks
+- Platform limits and considerations
+
+**Location**: `.claude/skills/drupal-pantheon/`
+
+### 5. Ivan Grynenko - Drupal Security Patterns
 **Source**: [Ivan Grynenko's Cursor Rules](https://github.com/ivangrynenko/cursorrules)
 
 OWASP Top 10 security patterns for Drupal:
