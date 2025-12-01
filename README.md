@@ -77,6 +77,19 @@ OWASP Top 10 security patterns for Drupal:
 
 **Location**: `.claude/skills/ivangrynenko-cursorrules-drupal/`
 
+### 6. Vue Component Security Audit for Drupal Themes
+Comprehensive security auditing for Vue.js components in Drupal 10/11 themes:
+- XSS prevention in Vue templates
+- Component props validation and security
+- Vuex/Pinia state management security
+- Drupal API integration patterns (CSRF, authentication)
+- Build security (Vite/Webpack configuration)
+- Dependency auditing and supply chain security
+- Content Security Policy compliance
+- Safe Drupal/Vue data passing patterns
+
+**Location**: `.claude/skills/vue-drupal-security-audit/`
+
 ## Installation
 
 ### For Claude Code CLI
@@ -109,12 +122,14 @@ Once installed, Claude will automatically activate the appropriate skill based o
 
 - Working with service injection → `drupal-at-your-fingertips` activates
 - Updating a module → `drupal-composer-updates` activates
-- Checking security → `ivangrynenko-cursorrules-drupal` activates
+- Checking backend security → `ivangrynenko-cursorrules-drupal` activates
+- Auditing Vue components → `vue-drupal-security-audit` activates
 - Managing config → `drupal-config-mgmt` activates
 
 You can also explicitly invoke a skill by mentioning it in your prompt:
 ```
 "Using the drupal-at-your-fingertips patterns, show me how to create a custom entity"
+"Audit this Vue component using vue-drupal-security-audit skill"
 ```
 
 ## Updating Skills
