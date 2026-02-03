@@ -1,0 +1,25 @@
+{
+  "name": "drupal-skills",
+  "description": "Comprehensive Drupal development skills for Claude Code - patterns from 'Drupal at Your Fingertips', security best practices (OWASP Top 10), configuration management, DDEV local development, and contributed module management for Drupal 9/10/11",
+  "version": "1.0.0",
+  "author": {
+    "name": "grasmash",
+    "email": "grasmash@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/grasmash/drupal-claude-skills",
+  "repository": "https://github.com/grasmash/drupal-claude-skills",
+  "license": "MIT",
+  "keywords": [
+    "drupal",
+    "php",
+    "cms",
+    "ddev",
+    "security",
+    "owasp",
+    "drupal-11",
+    "drupal-10",
+    "composer",
+    "drush"
+  ],
+  "skills": "./skills/"
+}

@@ -11,83 +11,94 @@ A comprehensive collection of Drupal development skills for Claude Code:
    - `drupal-ddev` - Local development environment
    - `ivangrynenko-cursorrules-drupal` - OWASP security patterns
 
-2. **Documentation**:
-   - `README.md` - Comprehensive project overview
-   - `LICENSE` - MIT license with third-party notices
-   - `.gitignore` - Standard ignores
-
-## For Maintainers: Syncing Updates
-
-If you maintain a private fork with additional project-specific content, you can sync Drupal-only improvements back to this repository:
-
-```bash
-# Example sync workflow (customize for your setup)
-# 1. Make improvements to Drupal skills in private repo
-# 2. Filter out project-specific references
-# 3. Review changes
-git diff .claude/skills/drupal-*
-
-# 4. Commit and push
-git add .claude/skills/drupal-*
-git commit -m "Update Drupal skills"
-git push origin main
-```
+2. **Plugin Structure**:
+   - `.claude-plugin/plugin.json` - Plugin manifest
+   - `.claude-plugin/marketplace.json` - Self-hosted marketplace
 
 ## Installation
 
-### Project-Level Installation
+### Via Claude Code Plugin System (Recommended)
 
-Copy the `.claude` directory to your Drupal project root:
+The easiest way to install:
 
+**Using the CLI:**
 ```bash
-cp -r .claude /path/to/your/drupal/project/
+# Add the marketplace
+claude plugin marketplace add grasmash/drupal-claude-skills
+
+# Install the plugin
+claude plugin install drupal-skills@drupal-plugins
 ```
 
-### Global Installation
+**Using the interactive prompt:**
+```
+/plugin marketplace add grasmash/drupal-claude-skills
+/plugin install drupal-skills@drupal-plugins
+```
 
-Install globally to make skills available across all projects:
+**Installation Scopes:**
+```bash
+# User-level (default) - available across all projects
+claude plugin install drupal-skills@drupal-plugins
 
+# Project-level - shared via version control
+claude plugin install drupal-skills@drupal-plugins --scope project
+
+# Local only - project-specific, gitignored
+claude plugin install drupal-skills@drupal-plugins --scope local
+```
+
+### Manual Installation
+
+**Project-level:**
+```bash
+mkdir -p /path/to/your/drupal/project/.claude/skills
+cp -r skills/* /path/to/your/drupal/project/.claude/skills/
+```
+
+**Global installation:**
 ```bash
 mkdir -p ~/.config/claude/skills
-cp -r .claude/skills/* ~/.config/claude/skills/
+cp -r skills/* ~/.config/claude/skills/
 ```
-
-### Via Claude Code Marketplace (Recommended)
-
-Coming soon: Install via Claude Code's plugin marketplace system.
 
 ## Updating Skills
 
-Skills with upstream sources can be updated using the sync scripts:
-
+**Via Plugin System:**
 ```bash
-# Update Drupal at Your Fingertips patterns
-./.claude/scripts/sync-d9book.sh
-
-# Update Ivan Grynenko security patterns
-./.claude/scripts/sync-ivan-rules.sh
+claude plugin update drupal-skills@drupal-plugins
 ```
 
-These scripts automatically pull the latest content from upstream sources.
+**Via sync scripts (for maintainers):**
+```bash
+# Update Drupal at Your Fingertips patterns
+./scripts/sync-d9book.sh
+
+# Update Ivan Grynenko security patterns
+./scripts/sync-ivan-rules.sh
+```
 
 ## Repository Structure
 
 ```
 drupal-claude-skills/
-├── .claude/
-│   ├── skills/
-│   │   ├── drupal-at-your-fingertips/
-│   │   ├── drupal-contrib-mgmt/
-│   │   ├── drupal-config-mgmt/
-│   │   ├── drupal-ddev/
-│   │   └── ivangrynenko-cursorrules-drupal/
-│   └── scripts/
-│       ├── sync-d9book.sh
-│       └── sync-ivan-rules.sh
+├── .claude-plugin/
+│   ├── plugin.json          # Plugin manifest
+│   └── marketplace.json     # Self-hosted marketplace
+├── skills/
+│   ├── drupal-at-your-fingertips/
+│   ├── drupal-contrib-mgmt/
+│   ├── drupal-config-mgmt/
+│   ├── drupal-ddev/
+│   └── ivangrynenko-cursorrules-drupal/
+├── scripts/
+│   ├── sync-d9book.sh
+│   └── sync-ivan-rules.sh
 ├── README.md
-├── LICENSE
 ├── USAGE.md (this file)
-└── .gitignore
+├── CONTRIBUTING.md
+├── CHANGELOG.md
+└── LICENSE
 ```
 
 ## Usage
@@ -105,9 +116,24 @@ You can also explicitly invoke a skill:
 "Using drupal-at-your-fingertips patterns, show me how to create a custom entity"
 ```
 
+## For Maintainers: Syncing Updates
+
+If you maintain a fork with additional content:
+
+```bash
+# Make improvements to Drupal skills
+# Review changes
+git diff skills/drupal-*
+
+# Commit and push
+git add skills/drupal-*
+git commit -m "Update Drupal skills"
+git push origin main
+```
+
 ## Contributing
 
-Contributions are welcome! Please see the main [README.md](README.md) for contribution guidelines.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Support
 

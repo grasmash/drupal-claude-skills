@@ -9,7 +9,7 @@ set -e
 
 UPSTREAM_URL="https://drupalatyourfingertips.com"
 UPSTREAM_REPO="https://github.com/selwynpolit/d9book"
-SKILLS_DIR=".claude/skills"
+SKILLS_DIR="skills"
 SKILL_NAME="drupal-at-your-fingertips"
 SKILL_DIR="$SKILLS_DIR/$SKILL_NAME"
 
@@ -90,7 +90,7 @@ See `/references/` directory for complete list of 50+ topics.
 
 ---
 
-**To update**: Run `.claude/scripts/sync-d9book.sh`
+**To update**: Run `./scripts/sync-d9book.sh`
 EOT
 
   # Add sync metadata
@@ -176,5 +176,5 @@ done
 echo ""
 echo "✅ Done! drupal-at-your-fingertips skill created"
 echo ""
-echo "Skill: .claude/skills/drupal-at-your-fingertips/"
+echo "Skill: skills/drupal-at-your-fingertips/"
 echo "References: $topic_count topic reference files"

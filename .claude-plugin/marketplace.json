@@ -1,0 +1,16 @@
+{
+  "name": "drupal-plugins",
+  "owner": {
+    "name": "grasmash",
+    "email": "grasmash@users.noreply.github.com"
+  },
+  "description": "Official marketplace for Drupal Claude Code plugins",
+  "plugins": [
+    {
+      "name": "drupal-skills",
+      "source": "./",
+      "description": "Comprehensive Drupal development skills - patterns, security, config management, DDEV, and module management",
+      "version": "1.0.0"
+    }
+  ]
+}

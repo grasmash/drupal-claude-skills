@@ -42,7 +42,7 @@ Each skill must follow this structure:
 ### Directory-Based Skill
 
 ```
-.claude/skills/skill-name/
+skills/skill-name/
 ├── SKILL.md              # Main skill file
 └── references/           # Optional detailed docs
     ├── topic1.md
@@ -52,7 +52,7 @@ Each skill must follow this structure:
 ### Single-File Skill
 
 ```
-.claude/skills/skill-name.md
+skills/skill-name.md
 ```
 
 ## SKILL.md Format
@@ -157,7 +157,7 @@ ddev drush config:get block.block.my_custom_block
 
 3. **Commit**
    ```bash
-   git add .claude/skills/drupal-ddev/
+   git add skills/drupal-ddev/
    git commit -m "Add database snapshot workflow to DDEV skill"
    ```
 
@@ -177,8 +177,11 @@ ddev drush config:get block.block.my_custom_block
 ### Local Testing
 
 ```bash
-# Copy to test project
-cp -r .claude /path/to/test/drupal/project/
+# Test as a plugin
+claude --plugin-dir ./
+
+# Or copy skills to test project
+cp -r skills/* /path/to/test/drupal/project/.claude/skills/
 
 # Start Claude Code in test project
 cd /path/to/test/drupal/project
@@ -202,7 +205,7 @@ Skills with upstream sources should be updated periodically:
 ### Drupal at Your Fingertips
 
 ```bash
-./.claude/scripts/sync-d9book.sh
+./scripts/sync-d9book.sh
 ```
 
 Updates from: https://drupalatyourfingertips.com
@@ -210,7 +213,7 @@ Updates from: https://drupalatyourfingertips.com
 ### Ivan Grynenko Security Patterns
 
 ```bash
-./.claude/scripts/sync-ivan-rules.sh
+./scripts/sync-ivan-rules.sh
 ```
 
 Updates from: https://github.com/ivangrynenko/cursorrules

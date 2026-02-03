@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude-Code-orange.svg)](https://claude.com/claude-code)
 [![Drupal](https://img.shields.io/badge/Drupal-9%20%7C%2010%20%7C%2011-blue.svg)](https://www.drupal.org)
+[![Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-green.svg)](https://docs.anthropic.com/en/docs/claude-code)
 
 A comprehensive collection of Claude AI skills for Drupal development, covering best practices, security patterns, configuration management, and module updates.
 
@@ -11,6 +12,59 @@ A comprehensive collection of Claude AI skills for Drupal development, covering 
 ## Overview
 
 These skills are designed to work with [Claude Code](https://claude.com/claude-code) and provide context-aware assistance for Drupal development tasks. They include comprehensive patterns from industry experts and cover modern Drupal 9, 10, and 11 development.
+
+## Installation
+
+### Via Claude Code Plugin System (Recommended)
+
+The easiest way to install these skills is via the Claude Code plugin system:
+
+**Using the CLI:**
+```bash
+# Add the marketplace
+claude plugin marketplace add grasmash/drupal-claude-skills
+
+# Install the plugin
+claude plugin install drupal-skills@drupal-plugins
+```
+
+**Using the interactive prompt:**
+```
+/plugin marketplace add grasmash/drupal-claude-skills
+/plugin install drupal-skills@drupal-plugins
+```
+
+**Installation Scopes:**
+```bash
+# User-level (default) - available across all projects
+claude plugin install drupal-skills@drupal-plugins
+
+# Project-level - shared via version control
+claude plugin install drupal-skills@drupal-plugins --scope project
+
+# Local only - project-specific, gitignored
+claude plugin install drupal-skills@drupal-plugins --scope local
+```
+
+### Manual Installation
+
+If you prefer manual installation or need to customize:
+
+**Project-level:**
+```bash
+# Clone the repository
+git clone https://github.com/grasmash/drupal-claude-skills.git
+
+# Copy skills to your project
+mkdir -p /path/to/your/drupal/project/.claude/skills
+cp -r drupal-claude-skills/skills/* /path/to/your/drupal/project/.claude/skills/
+```
+
+**Global installation:**
+```bash
+mkdir -p ~/.config/claude/skills
+cp -r skills/* ~/.config/claude/skills/
+```
 
 ## Included Skills
 
@@ -27,7 +81,7 @@ Comprehensive Drupal patterns covering 50+ topics including:
 - Testing (PHPUnit, Drupal Test Traits)
 - Common patterns and best practices
 
-**Location**: `.claude/skills/drupal-at-your-fingertips/`
+**Location**: `skills/drupal-at-your-fingertips/`
 
 ### 2. Drupal Contrib Module Management
 Comprehensive guide for managing Drupal contributed modules, including:
@@ -38,7 +92,7 @@ Comprehensive guide for managing Drupal contributed modules, including:
 - Major version upgrade patterns
 - Troubleshooting dependency issues
 
-**Location**: `.claude/skills/drupal-contrib-mgmt/`
+**Location**: `skills/drupal-contrib-mgmt/`
 
 ### 3. Drupal Configuration Management
 Safe patterns for inspecting and syncing Drupal configuration:
@@ -48,7 +102,7 @@ Safe patterns for inspecting and syncing Drupal configuration:
 - Syncing config between environments
 - Manual config editing workflows
 
-**Location**: `.claude/skills/drupal-config-mgmt/`
+**Location**: `skills/drupal-config-mgmt/`
 
 ### 4. DDEV Local Development
 DDEV local development environment for Drupal:
@@ -59,7 +113,7 @@ DDEV local development environment for Drupal:
 - Performance optimization (mutagen for macOS)
 - Custom commands and hooks
 
-**Location**: `.claude/skills/drupal-ddev/`
+**Location**: `skills/drupal-ddev/`
 
 ### 5. Ivan Grynenko - Drupal Security Patterns
 **Source**: [Ivan Grynenko's Cursor Rules](https://github.com/ivangrynenko/cursorrules)
@@ -75,33 +129,7 @@ OWASP Top 10 security patterns for Drupal:
 - Secure design patterns
 - Software integrity and logging
 
-**Location**: `.claude/skills/ivangrynenko-cursorrules-drupal/`
-
-## Installation
-
-### For Claude Code CLI
-
-1. Copy the `.claude` directory to your Drupal project root:
-   ```bash
-   cp -r .claude /path/to/your/drupal/project/
-   ```
-
-2. The skills will automatically be available in Claude Code when working in that project.
-
-### For Global Use
-
-To make these skills available across all your projects:
-
-1. Copy to your Claude config directory (create if it doesn't exist):
-   ```bash
-   mkdir -p ~/.config/claude/skills
-   cp -r .claude/skills/* ~/.config/claude/skills/
-   ```
-
-2. Or create a symbolic link:
-   ```bash
-   ln -s /path/to/drupal-claude-skills/.claude/skills ~/.config/claude/skills/drupal
-   ```
+**Location**: `skills/ivangrynenko-cursorrules-drupal/`
 
 ## Usage
 
@@ -117,15 +145,39 @@ You can also explicitly invoke a skill by mentioning it in your prompt:
 "Using the drupal-at-your-fingertips patterns, show me how to create a custom entity"
 ```
 
-## Updating Skills
+## Plugin Structure
 
-The original skills are maintained in a private repository. To sync updates:
+This repository is structured as a Claude Code plugin:
 
+```
+drupal-claude-skills/
+├── .claude-plugin/
+│   ├── plugin.json          # Plugin manifest
+│   └── marketplace.json     # Self-hosted marketplace catalog
+├── skills/                  # All Drupal skills
+│   ├── drupal-at-your-fingertips/
+│   ├── drupal-contrib-mgmt/
+│   ├── drupal-config-mgmt/
+│   ├── drupal-ddev/
+│   └── ivangrynenko-cursorrules-drupal/
+├── scripts/                 # Upstream sync scripts
+├── README.md
+├── USAGE.md
+├── CONTRIBUTING.md
+├── CHANGELOG.md
+└── LICENSE
+```
+
+## Updating
+
+**Via Plugin System:**
 ```bash
-# Clone this repository
-cd ~/Sites/drupal-claude-skills
+claude plugin update drupal-skills@drupal-plugins
+```
 
-# Pull latest changes
+**Via Git (manual installation):**
+```bash
+cd ~/Sites/drupal-claude-skills
 git pull origin main
 ```
 
@@ -142,7 +194,7 @@ Contributions are welcome! Please follow these guidelines:
 ### Skill Structure
 
 ```
-.claude/skills/
+skills/
 ├── skill-name/
 │   ├── SKILL.md              # Main skill file with metadata
 │   └── references/           # Detailed reference documentation
@@ -197,6 +249,7 @@ Please respect individual content licenses when using or distributing.
 ## Related Resources
 
 - [Claude Code Documentation](https://docs.claude.com/claude-code)
+- [Claude Code Plugins](https://docs.anthropic.com/en/docs/claude-code)
 - [Drupal.org](https://drupal.org)
 - [Drupal API Reference](https://api.drupal.org)
 - [Upgrade Status Module](https://www.drupal.org/project/upgrade_status)

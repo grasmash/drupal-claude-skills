@@ -10,7 +10,7 @@ set -e
 UPSTREAM_REPO="https://raw.githubusercontent.com/ivangrynenko/cursorrules/main/.cursor/rules"
 UPSTREAM_API="https://api.github.com/repos/ivangrynenko/cursorrules/contents/.cursor/rules"
 UPSTREAM_URL="https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules"
-SKILLS_DIR=".claude/skills"
+SKILLS_DIR="skills"
 SKILL_NAME="ivangrynenko-cursorrules-drupal"
 SKILL_DIR="$SKILLS_DIR/$SKILL_NAME"
 
@@ -84,7 +84,7 @@ See `/references/` directory for complete list.
 
 ---
 
-**To update**: Run `.claude/scripts/sync-ivan-rules.sh`
+**To update**: Run `./scripts/sync-ivan-rules.sh`
 EOT
 
   # Add sync metadata
@@ -266,5 +266,5 @@ done
 echo ""
 echo "✅ Done! ivangrynenko-cursorrules-drupal skill created"
 echo ""
-echo "Skill: .claude/skills/ivangrynenko-cursorrules-drupal/"
+echo "Skill: skills/ivangrynenko-cursorrules-drupal/"
 echo "References: $topic_count topic reference files"
