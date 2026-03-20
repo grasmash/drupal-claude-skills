@@ -9,23 +9,60 @@ A comprehensive collection of Claude Code skills and agents for Drupal developme
 
 ## Quick Install
 
-### Skills (via `npx skills`)
+### Option 1: Give this prompt to your AI agent
+
+Copy-paste this into Claude Code (or any AI coding agent) from your Drupal project directory:
+
+```
+Install Drupal Claude Skills into this project from https://github.com/grasmash/drupal-claude-skills:
+
+1. Clone the repo to a temp directory
+2. Copy skills/ into .claude/skills/
+3. Copy .claude/agents/ into .claude/agents/
+4. Copy .claude/settings.json (if I don't already have one)
+5. Read AGENTS.md from the repo and append the "Agent Workflow Guide" section to my CLAUDE.md (create CLAUDE.md if it doesn't exist)
+6. Clean up the temp directory
+```
+
+### Option 2: Shell script
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/grasmash/drupal-claude-skills/main/install.sh)
+```
+
+Or from a cloned copy:
+
+```bash
+./install.sh /path/to/your/drupal/project
+```
+
+### Option 3: Skills CLI (skills only, no agents)
 
 ```bash
 npx skills add grasmash/drupal-claude-skills
 ```
 
-This copies all skills into your project's `.claude/skills/` directory. Works with Claude Code, Cursor, Codex, Gemini CLI, and any tool supporting the [agentskills.io specification](https://agentskills.io).
+This copies skills into `.claude/skills/` but does **not** install agents, settings, or the workflow guide. Works with Claude Code, Cursor, Codex, Gemini CLI, and any tool supporting the [agentskills.io specification](https://agentskills.io).
 
-### Agents + Settings (manual)
+### Option 4: Manual
 
 ```bash
-# Copy agents
-cp -r .claude/agents/ /path/to/your/project/.claude/agents/
+git clone https://github.com/grasmash/drupal-claude-skills.git /tmp/drupal-skills
 
-# Copy sample settings
-cp .claude/settings.json /path/to/your/project/.claude/settings.json
+# Skills
+cp -r /tmp/drupal-skills/skills/* .claude/skills/
+
+# Agents
+cp -r /tmp/drupal-skills/.claude/agents/* .claude/agents/
+
+# Settings (review and customize)
+cp /tmp/drupal-skills/.claude/settings.json .claude/settings.json
+
+# Clean up
+rm -rf /tmp/drupal-skills
 ```
+
+Then add the agent workflow guide from [AGENTS.md](AGENTS.md) to your project's CLAUDE.md.
 
 ## What's Included
 
