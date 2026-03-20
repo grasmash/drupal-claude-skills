@@ -438,16 +438,16 @@ When a client (especially React Native apps) sends a request with BOTH a valid B
 
 **Drupal core issue:** [#3055260](https://www.drupal.org/project/drupal/issues/3055260)
 
-### The Solution: bearer_csrf_bypass Module
+### The Solution: Custom CSRF Bypass Module
 
-**Location:** `docroot/modules/custom/bearer_csrf_bypass/`
+Create a custom module (e.g., `oauth_csrf_bypass`) that decorates the `session_configuration` service to return `FALSE` for `hasSession()` when a valid Bearer token is present, preventing unnecessary CSRF checks.
 
-The module decorates the `session_configuration` service to return `FALSE` for `hasSession()` when a valid Bearer token is present, preventing unnecessary CSRF checks.
+**Location:** `docroot/modules/custom/{module_name}/`
 
 ### How It Works
 
 ```php
-// BearerSessionConfiguration.php
+// src/Session/BearerSessionConfiguration.php
 public function hasSession(Request $request): bool {
   $auth_header = $request->headers->get('Authorization', '');
 
@@ -467,14 +467,14 @@ public function hasSession(Request $request): bool {
 ### Service Definition
 
 ```yaml
-# bearer_csrf_bypass.services.yml
+# {module_name}.services.yml
 services:
-  bearer_csrf_bypass.session_configuration:
-    class: Drupal\bearer_csrf_bypass\Session\BearerSessionConfiguration
+  {module_name}.session_configuration:
+    class: Drupal\{module_name}\Session\BearerSessionConfiguration
     decorates: session_configuration
     decoration_priority: 10
     arguments:
-      - '@bearer_csrf_bypass.session_configuration.inner'
+      - '@{module_name}.session_configuration.inner'
       - '@simple_oauth.server.resource_server.factory'
       - '@psr7.http_message_factory'
 ```
@@ -511,4 +511,4 @@ curl -X GET "https://yoursite.ddev.site/jsonapi" \
 - `Role.php` - Dynamic scope to role mapping (line 94: authenticated role grant)
 - `field_permissions.module` - Field access hook (line 34)
 - `CustomAccess.php` - Field permission type (line 36: hasPermission call)
-- `BearerSessionConfiguration.php` - CSRF bypass decorator for Bearer tokens
+- `src/Session/BearerSessionConfiguration.php` - CSRF bypass decorator for Bearer tokens (custom module)

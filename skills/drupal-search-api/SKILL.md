@@ -18,10 +18,10 @@ This skill documents Search API configuration patterns, boosting strategies, and
 
 ```yaml
 field_settings:
-  field_user_verified:
-    label: Verified
-    datasource_id: 'entity:user'
-    property_path: field_user_verified
+  field_featured:
+    label: Featured
+    datasource_id: 'entity:node'
+    property_path: field_featured
     type: boolean  # NOT integer
     boost: 8.0
 ```
@@ -29,7 +29,7 @@ field_settings:
 **Configuration Command**
 ```bash
 ddev drush config:set search_api.index.{index_name} \
-  field_settings.field_user_verified.type boolean
+  field_settings.field_featured.type boolean
 ```
 
 ### Numeric Fields for Engagement Boosting
@@ -45,9 +45,9 @@ field_settings:
     label: 'Bookmark count'
     property_path: flag_bookmark_count
     type: integer
-  flag_like_count:
-    label: 'Like count'
-    property_path: flag_like_count
+  flag_favorite_count:
+    label: 'Favorite count'
+    property_path: flag_favorite_count
     type: integer
 ```
 
@@ -56,11 +56,11 @@ field_settings:
 ### Custom Boolean Boost Processor
 
 **When to Use**
-- Boolean field boosting (verified badges, featured content)
+- Boolean field boosting (featured flags, promoted content)
 - Needs 100% control over boost logic
 - Complex conditional boosting
 
-**Pattern: VerifiedUserBoost.php**
+**Pattern: FeaturedContentBoost.php**
 
 ```php
 <?php
@@ -72,9 +72,9 @@ use Drupal\search_api\Processor\ProcessorPluginBase;
 
 /**
  * @SearchApiProcessor(
- *   id = "verified_user_boost",
- *   label = @Translation("Verified user boost"),
- *   description = @Translation("Adds a boost to indexed items for verified users."),
+ *   id = "featured_content_boost",
+ *   label = @Translation("Featured content boost"),
+ *   description = @Translation("Adds a boost to indexed items marked as featured."),
  *   stages = {
  *     "preprocess_index" = 0,
  *   },
@@ -82,7 +82,7 @@ use Drupal\search_api\Processor\ProcessorPluginBase;
  *   hidden = false,
  * )
  */
-class VerifiedUserBoost extends ProcessorPluginBase {
+class FeaturedContentBoost extends ProcessorPluginBase {
 
   /**
    * {@inheritdoc}
@@ -90,20 +90,15 @@ class VerifiedUserBoost extends ProcessorPluginBase {
   public function preprocessIndexItems(array $items) {
     /** @var \Drupal\search_api\Item\ItemInterface $item */
     foreach ($items as $item) {
-      // Only process user entities.
-      if ($item->getDatasource()->getEntityTypeId() !== 'user') {
-        continue;
-      }
-
       try {
         $entity = $item->getOriginalObject()->getValue();
 
-        // Check if user has verified field and it's set to TRUE.
-        if ($entity->hasField('field_user_verified') &&
-            !$entity->get('field_user_verified')->isEmpty() &&
-            $entity->get('field_user_verified')->value == 1) {
+        // Check if entity has featured field and it's set to TRUE.
+        if ($entity->hasField('field_featured') &&
+            !$entity->get('field_featured')->isEmpty() &&
+            $entity->get('field_featured')->value == 1) {
           $old_boost = $item->getBoost();
-          // Apply 2x boost to verified users.
+          // Apply 2x boost to featured content.
           $item->setBoost($old_boost * 2.0);
         }
       }
@@ -123,7 +118,7 @@ class VerifiedUserBoost extends ProcessorPluginBase {
 - Always get old boost first to preserve other boosts
 
 **Recommended Boost Factors**
-- Verified users: `2.0x` (modest but effective)
+- Featured content: `2.0x` (modest but effective)
 - Featured content: `1.5x - 3.0x`
 - Premium content: `1.5x - 2.0x`
 
@@ -145,7 +140,7 @@ processor_settings:
       flag_bookmark_count:
         boost_factor: 0.01
         aggregation: max
-      flag_like_count:
+      flag_favorite_count:
         boost_factor: 0.1
         aggregation: max
 ```
@@ -161,14 +156,14 @@ processor_settings:
 ddev drush config:set search_api.index.{index_name} \
   processor_settings.number_field_boost.boosts.flag_bookmark_count.boost_factor 0.01
 
-# Set like count boost (0.1 per like)
+# Set favorite count boost (0.1 per favorite)
 ddev drush config:set search_api.index.{index_name} \
-  processor_settings.number_field_boost.boosts.flag_like_count.boost_factor 0.1
+  processor_settings.number_field_boost.boosts.flag_favorite_count.boost_factor 0.1
 ```
 
 **Recommended Boost Factors**
 - Bookmark count: `0.01 - 0.05` (for counts in 10-1000 range)
-- Like count: `0.1 - 0.5` (for counts in 1-50 range)
+- Favorite count: `0.1 - 0.5` (for counts in 1-50 range)
 - View count: `0.001 - 0.01` (for counts in 100-10000 range)
 
 ### Processor Conflicts
@@ -185,7 +180,7 @@ If multiple processors target the same field, they can conflict:
 ```bash
 # Remove field from number_field_boost if using custom processor
 ddev drush config:set search_api.index.{index_name} \
-  processor_settings.number_field_boost.boosts.field_user_verified null
+  processor_settings.number_field_boost.boosts.field_featured null
 ```
 
 **Best Practice**
@@ -204,16 +199,16 @@ ddev drush php:eval "
 \$config = \Drupal::configFactory()->getEditable('search_api.index.{index_name}');
 
 // Set field type
-\$config->set('field_settings.field_user_verified.type', 'boolean');
+\$config->set('field_settings.field_featured.type', 'boolean');
 
 // Remove from number_field_boost
 \$boosts = \$config->get('processor_settings.number_field_boost.boosts');
-unset(\$boosts['field_user_verified']);
+unset(\$boosts['field_featured']);
 \$config->set('processor_settings.number_field_boost.boosts', \$boosts);
 
 // Set boost factors
 \$config->set('processor_settings.number_field_boost.boosts.flag_bookmark_count.boost_factor', 0.01);
-\$config->set('processor_settings.number_field_boost.boosts.flag_like_count.boost_factor', 0.1);
+\$config->set('processor_settings.number_field_boost.boosts.flag_favorite_count.boost_factor', 0.1);
 
 \$config->save();
 echo \"Configuration updated\n\";
@@ -227,7 +222,7 @@ echo \"Configuration updated\n\";
 - When field type changes cause Drupal to fallback to generic types
 
 **After PHP Config Updates:**
-1. Verify changes: `ddev drush config:get search_api.index.{index_name} field_settings.field_user_verified`
+1. Verify changes: `ddev drush config:get search_api.index.{index_name} field_settings.field_featured`
 2. Export to files: `ddev drush config:export -y`
 3. Review exported changes: `git diff config/default/`
 4. Revert any unintended changes (e.g., ngram fields changed to plain text)
@@ -238,11 +233,11 @@ echo \"Configuration updated\n\";
 
 ```yaml
 # BEFORE (correct)
-field_full_name:
+field_display_name:
   type: 'solr_text_custom:ngramstring'
 
 # AFTER export (incorrect)
-field_full_name:
+field_display_name:
   type: text
 ```
 
@@ -251,7 +246,7 @@ field_full_name:
 ```bash
 ddev drush php:eval "
 \$config = \Drupal::configFactory()->getEditable('search_api.index.{index_name}');
-\$config->set('field_settings.field_full_name.type', 'solr_text_custom:ngramstring');
+\$config->set('field_settings.field_display_name.type', 'solr_text_custom:ngramstring');
 \$config->set('field_settings.label.type', 'solr_text_custom:ngramstring');
 \$config->set('field_settings.name.type', 'solr_text_custom:ngramstring');
 \$config->set('field_settings.title.type', 'solr_text_custom:ngramstring');
@@ -261,8 +256,8 @@ ddev drush config:export -y
 ```
 
 **Fields Using ngram Tokenization:**
-- `field_full_name` - User full names (partial matching for autocomplete)
-- `label` - Group labels/titles
+- `field_display_name` - Display names (partial matching for autocomplete)
+- `label` - Entity labels/titles
 - `name` - User account names
 - `title` - Node titles
 
@@ -363,13 +358,13 @@ ORDER BY fcf.count DESC
 LIMIT 10;
 ```
 
-**Check Like Counts**
+**Check Favorite Counts**
 ```sql
-SELECT n.nid, n.title, fcl.count AS like_count
+SELECT n.nid, n.title, fcl.count AS favorite_count
 FROM node_field_data n
 INNER JOIN flag_counts fcl ON fcl.entity_type = 'node'
   AND fcl.entity_id = n.nid
-  AND fcl.flag_id = 'like'
+  AND fcl.flag_id = 'favorite'
 WHERE n.type = 'article'
 ORDER BY fcl.count DESC
 LIMIT 10;
@@ -400,21 +395,21 @@ LIMIT 10;
 
 **How Boosts Combine**
 1. Base relevance score (from Solr)
-2. Verified user boost: `score x 2.0`
+2. Featured content boost: `score x 2.0`
 3. Bookmark count boost: `score + (bookmarks x 0.01)`
-4. Like count boost: `score + (likes x 0.1)`
+4. Favorite count boost: `score + (favorites x 0.1)`
 
 **Example Calculation**
 ```
-User: "Jane Smith" (verified, 138 bookmarks)
+Node: "Getting Started with Drupal" (featured, 138 bookmarks)
 - Base score: 1.0
-- Verified: 1.0 x 2.0 = 2.0
+- Featured: 1.0 x 2.0 = 2.0
 - 138 bookmarks: 2.0 + (138 x 0.01) = 3.38
 - Final boost: 3.38
 
-Article: "Getting Started with Drupal"
+Node: "Advanced Drupal Techniques"
 - Base score: 1.0
-- 12 likes: 1.0 + (12 x 0.1) = 2.2
+- 12 favorites: 1.0 + (12 x 0.1) = 2.2
 - Final boost: 2.2
 ```
 
@@ -474,7 +469,7 @@ Too weak (no visible effect):
 - `search_api_solr` - Solr backend (if using Solr)
 
 ### Optional Modules
-- `flag_search_api` - Index flag counts (bookmark, like)
+- `flag_search_api` - Index flag counts (bookmark, favorite)
 - `search_api_boolean_field_boost` - Reference for boost patterns
 
 ## References

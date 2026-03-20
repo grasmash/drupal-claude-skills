@@ -111,19 +111,19 @@ git commit -m "chore: sync config from production"
 # After pulling prod DB and exporting config
 $ git status --short config/
  M config/default/core.entity_view_display.node.article.teaser.yml
- M config/default/field.storage.group.field_member_count.yml
- D config/default/field.field.node.article.field_custom_count.yml
- D config/default/field.storage.node.field_custom_count.yml
+ M config/default/field.storage.node.field_featured_image.yml
+ D config/default/field.field.node.article.field_summary.yml
+ D config/default/field.storage.node.field_summary.yml
  M config/default/views.view.content.yml
 
 # The D files are our new feature - restore them
-$ git checkout HEAD -- config/default/field.field.node.article.field_custom_count.yml \
-                       config/default/field.storage.node.field_custom_count.yml
+$ git checkout HEAD -- config/default/field.field.node.article.field_summary.yml \
+                       config/default/field.storage.node.field_summary.yml
 
 # Verify
 $ git status --short config/
  M config/default/core.entity_view_display.node.article.teaser.yml
- M config/default/field.storage.group.field_member_count.yml
+ M config/default/field.storage.node.field_featured_image.yml
  M config/default/views.view.content.yml
 
 # Our feature files are no longer in the diff - commit prod changes
