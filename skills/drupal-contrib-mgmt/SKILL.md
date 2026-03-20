@@ -150,12 +150,14 @@ composer require drupal/module_name --with-all-dependencies
 
 ## Patch Management (cweagans/composer-patches)
 
+**IMPORTANT**: Use version 2.x for reliable patch application. Version 1.x uses the `patch` binary which can have issues on some systems. Version 2.x uses `git apply` by default.
+
 ### Patch Configuration
 
 ```json
 {
   "require": {
-    "cweagans/composer-patches": "^1.7"
+    "cweagans/composer-patches": "^2.0"
   },
   "config": {
     "allow-plugins": {
@@ -163,19 +165,65 @@ composer require drupal/module_name --with-all-dependencies
     }
   },
   "extra": {
+    "composer-exit-on-patch-failure": true,
     "patches": {
       "drupal/module_name": {
         "Description of patch": "https://www.drupal.org/files/issues/2024-01-15/module-issue-1234567-8.patch",
         "Local patch": "patches/custom-fix.patch"
       }
     },
-    "enable-patching": true,
     "patchLevel": {
       "drupal/core": "-p2"
     }
   }
 }
 ```
+
+### Upgrading from 1.x to 2.x
+
+If you're on version 1.x and experiencing patch failures:
+
+```bash
+composer require cweagans/composer-patches:^2.0 --with-all-dependencies
+```
+
+Key differences in 2.x:
+- Uses `git apply` instead of `patch` binary (more reliable)
+- `enable-patching` option removed (patching is always enabled)
+- Better error messages and debugging
+- **CRITICAL**: Hash-based caching - patches may not re-apply if module already installed
+
+### Verifying Patches Are Applied
+
+**PROBLEM**: composer-patches 2.x caches patch hashes in `composer.lock`. If modules are reinstalled or vendor updates occur without proper patch application, patches can silently go missing.
+
+**SOLUTION**: Use a `verify-patches.sh` post-install hook:
+
+```bash
+# Run manually
+./scripts/verify-patches.sh
+
+# Attempt auto-fix for missing patches
+./scripts/verify-patches.sh --fix
+```
+
+This script runs automatically after `composer install` and verifies critical patches are applied by checking for expected code patterns.
+
+**Adding New Critical Patches to Verification**:
+
+Edit `scripts/verify-patches.sh` and add to the `CRITICAL_PATCHES` array:
+```bash
+CRITICAL_PATCHES=(
+  # Format: "module_path:file_path:search_pattern:description"
+  "docroot/modules/contrib/MODULE:src/File.php:patternToFind:Description"
+)
+```
+
+**When Patches Go Missing**:
+1. Run `./scripts/verify-patches.sh` to identify missing patches
+2. Run `./scripts/verify-patches.sh --fix` to auto-reinstall affected modules
+3. Or manually: `composer reinstall drupal/module_name`
+4. If still failing, update `composer.lock`: `composer update --lock`
 
 ### Finding Patches
 
@@ -192,27 +240,150 @@ composer require drupal/module_name --with-all-dependencies
 3. Look for updated patch in latest comments
 4. Update composer.json with new patch URL
 
-### Creating Local Patches
+### Debugging Errors: Find Patches BEFORE Creating
+
+**CRITICAL WORKFLOW**: When encountering Drupal errors, ALWAYS search for existing patches before creating your own.
+
+#### Step 1: Extract the Exact Error Signature
+
+From the error message, extract the **exact** error string:
 
 ```bash
-# Method 1: Git diff
-cd docroot/modules/contrib/module_name
-# Make your changes
-git diff > /path/to/project/patches/module-custom-fix.patch
+# Example error:
+TypeError: Unsupported operand types: array + null in Drupal\field_ui\Form\EntityViewDisplayEditForm
 
-# Method 2: diff command
-diff -Naur original/file.php modified/file.php > patches/module-fix.patch
+# Extract this part:
+"Unsupported operand types: array + null"
+```
 
-# Apply in composer.json
+#### Step 2: Search Drupal.org Issue Queue FIRST
+
+```bash
+# Method 1: Direct URL search (BEST)
+https://www.drupal.org/project/drupal/issues?text=Unsupported+operand+types+array+null
+
+# Method 2: Search with file + line number
+https://www.drupal.org/project/drupal/issues?text=EntityViewDisplayEditForm+line+166
+```
+
+**What to look for in search results**:
+- Issues with status: "Needs review" or "Reviewed & tested by the community" (RTBC)
+- Recent activity (check dates)
+- Patch files in comments (look for `.patch` attachments)
+- Merge requests (look for `!13611` references)
+
+#### Step 3: Use WebFetch to Get Patch Details
+
+```bash
+# Once you find the issue, fetch details:
+WebFetch(https://www.drupal.org/project/drupal/issues/3552531)
+```
+
+Look for:
+- **Patch file URLs**: Usually `https://www.drupal.org/files/issues/YYYY-MM-DD/filename.patch`
+- **Merge request numbers**: E.g., `!13611` → `https://git.drupalcode.org/project/drupal/-/merge_requests/13611`
+- **Issue status**: RTBC means ready to use
+
+#### Step 4: Download and Apply Official Patch
+
+```bash
+# Download to patches directory
+curl -O https://www.drupal.org/files/issues/2025-10-16/field-ui--unsupported-operand-types--3552531-2.patch
+mv field-ui--unsupported-operand-types--3552531-2.patch patches/
+
+# Add to composer.json with descriptive name referencing issue
 {
   "extra": {
     "patches": {
-      "drupal/module_name": {
-        "Custom fix description": "patches/module-custom-fix.patch"
+      "drupal/core": {
+        "Fix TypeError: Unsupported operand types array + null in EntityViewDisplayEditForm - Issue #3552531": "patches/field-ui--unsupported-operand-types--3552531-2.patch"
       }
     }
   }
 }
+
+# Apply
+composer install
+```
+
+#### Common Search Patterns
+
+| Error Type | Search Term |
+|------------|-------------|
+| TypeError | Exact error message in quotes |
+| Deprecated function | Function name (e.g., `user_roles`) |
+| Missing method | Class name + method name |
+| Fatal error | Exact error text |
+
+#### Why This Matters
+
+- **Saves time**: Don't recreate existing solutions
+- **Better quality**: Community-reviewed patches are more robust
+- **Upstream integration**: Using official patches means easier upgrades
+- **Documentation**: Issue threads contain context and discussion
+
+#### Anti-Pattern Example
+
+❌ **What NOT to do**:
+1. See error
+2. Read code
+3. Create patch
+4. Apply patch
+5. (Someone points out existing issue)
+
+✅ **What TO do**:
+1. See error
+2. Extract exact error message
+3. Search drupal.org issue queue
+4. Find existing patch
+5. Apply official patch
+
+### Creating Local Patches
+
+**IMPORTANT**: Always create patches from a separate clone of the contrib module repo, not from the installed version in your project.
+
+```bash
+# Step 1: Clone the module repo to a separate directory (one-time setup)
+cd ~/Sites
+git clone git@git.drupal.org:project/module_name.git module_name-contrib
+
+# Step 2: Checkout the exact version you have installed
+cd ~/Sites/module_name-contrib
+git checkout 1.0.3  # Match your installed version
+
+# Step 3: Make your changes in the contrib repo
+# Edit files as needed...
+
+# Step 4: Generate the patch using git diff
+git diff > ~/Sites/your-project/patches/module_name-custom-fix.patch
+
+# Step 5: Add to composer.json
+{
+  "extra": {
+    "patches": {
+      "drupal/module_name": {
+        "Custom fix description": "patches/module_name-custom-fix.patch"
+      }
+    }
+  }
+}
+
+# Step 6: Apply via composer
+composer reinstall drupal/module_name
+```
+
+**Why use a separate repo?**
+- Creates clean patches without local modifications bleeding in
+- Matches the exact file structure composer expects
+- Allows proper version tracking with git tags
+- Enables contributing patches upstream to drupal.org
+
+**Patch format**: Patches should use git diff format (includes `a/` and `b/` prefixes):
+```
+diff --git a/src/File.php b/src/File.php
+index abc123..def456 100644
+--- a/src/File.php
++++ b/src/File.php
 ```
 
 ### Patch Application
@@ -225,9 +396,14 @@ composer install
 # Update or remove failing patches, then retry
 composer install
 
-# Force re-patch
-composer update drupal/module_name --with-all-dependencies
+# Re-patch a single module (most common)
+composer update drupal/module_name
+
+# Re-patch ALL patched dependencies (use when changing multiple patches)
+composer patches-repatch
 ```
+
+**For detailed patch workflows, see:** `references/drupal-patches-workflow.md`
 
 ## Drupal 11 Compatibility Workflow
 
@@ -432,6 +608,46 @@ drush updb -y
 9. **Use descriptive commit messages** with patch references
 10. **Keep drupal-lenient list minimal** (only when necessary)
 
+## Production Deployment
+
+When deploying to production environments, always optimize the Composer install:
+
+```bash
+# CRITICAL: Always use these flags for production
+composer install --no-dev -o
+
+# --no-dev: Excludes development dependencies (phpunit, rector, etc.)
+# -o (--optimize-autoloader): Optimizes autoloader for performance
+```
+
+**Why This Matters**:
+- `--no-dev` reduces codebase size by excluding testing/dev tools
+- `-o` creates optimized class maps for faster autoloading
+- Reduces security surface by excluding dev dependencies
+- Improves performance on production servers
+
+**Production Deployment Workflow**:
+
+```bash
+# 1. After making composer changes locally
+composer update drupal/module_name --with-all-dependencies
+
+# 2. Before committing, optimize for production
+composer install --no-dev -o
+
+# 3. Commit the optimized vendor files
+git add composer.json composer.lock vendor/
+git commit -m "Update module_name with production optimization"
+
+# 4. Push to production
+git push origin master
+
+# 5. On production, clear caches
+ssh user@remote.server "cd /path/to/drupal && drush cr"
+```
+
+**NEVER commit vendor/ with dev dependencies to production branches!**
+
 ## Developing Contrib Modules Locally
 
 When actively developing a contrib module for drupal.org, use this workflow to avoid constantly updating via composer:
@@ -478,20 +694,6 @@ composer install  # Reinstalls from drupal.org
 - Clear Drupal cache after changes: `drush cr`
 - When done developing, always reinstall via composer to ensure clean state
 - Useful for fixing autoloader issues, adding features, or troubleshooting
-
-**Example**: Fixing recurly_commerce_api autoloader issue
-```bash
-# Module needed composer.json autoload section
-cd /tmp/recurly_commerce_api
-# Edit composer.json to add autoload section
-git commit -m "Add PSR-4 autoload configuration"
-git push origin 1.0.x
-
-# Back in main project
-rm docroot/modules/contrib/recurly_commerce_api
-composer install  # Gets latest with fix
-drush cr
-```
 
 ## Common Patterns
 
@@ -554,6 +756,198 @@ drush watchdog:show --severity=Error --count=20
 # drush sql:cli < backup-before-update.sql
 ```
 
+## Contributing Back to drupal.org
+
+When you've developed a fix or feature that should be contributed upstream, use the issue fork workflow.
+
+### Step 1: Create Issue on drupal.org
+
+1. Go to `https://www.drupal.org/project/issues/MODULE_NAME`
+2. Click "Create a new issue"
+3. Fill in:
+   - **Title**: Descriptive title of the feature/fix
+   - **Category**: Bug report, Feature request, or Task
+   - **Priority**: Normal (unless exceptional)
+4. Note the issue number (e.g., 3569725)
+
+### Issue Description Format
+
+Use the standard drupal.org template with HTML formatting:
+
+```html
+<h3 id="overview">Overview</h3>
+
+<p>Problem description here.</p>
+<ul>
+<li>Bullet point one</li>
+<li>Bullet point two</li>
+</ul>
+
+<h3 id="proposed-resolution">Proposed resolution</h3>
+
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>Feature behavior one</li>
+<li>Feature behavior two</li>
+</ul>
+
+<p><strong>Technical implementation:</strong></p>
+<ul>
+<li><code>SomeClass</code> - description</li>
+<li><code>some_function()</code> - description</li>
+</ul>
+
+<p><strong>Files changed:</strong></p>
+<ul>
+<li><code>path/to/file.php</code> - Description of changes</li>
+</ul>
+
+<h3 id="ui-changes">User interface changes</h3>
+
+<p>Description of UI changes (or "None" if no UI changes).</p>
+
+<h3 id="steps-to-test">Steps to test</h3>
+
+<ol>
+<li>First step</li>
+<li>Second step</li>
+<li>Expected result</li>
+</ol>
+```
+
+**Formatting reference**: https://www.drupal.org/filter/tips
+- `<code>...</code>` for inline code
+- `<strong>...</strong>` for bold
+- `<ul><li>...</li></ul>` for unordered lists
+- `<ol><li>...</li></ol>` for ordered lists
+- `<h3 id="section-name">...</h3>` for section headers
+- `<p>...</p>` for paragraphs
+
+### Step 2: Create Issue Fork on drupal.org
+
+1. On the issue page, click "Create issue fork"
+2. Copy the Git commands provided
+
+### Step 3: Clone Module and Set Up Fork
+
+```bash
+# Clone the module repo (if not already cloned)
+cd ~/Sites
+git clone git@git.drupal.org:project/module_name.git module_name-contrib
+cd module_name-contrib
+
+# Add the issue fork as a remote (replace XXXXXXX with issue number)
+git remote add module_name-XXXXXXX git@git.drupal.org:issue/module_name-XXXXXXX.git
+git fetch module_name-XXXXXXX
+
+# Checkout the issue branch
+git checkout -b 'XXXXXXX-short-description' --track module_name-XXXXXXX/'XXXXXXX-short-description'
+```
+
+### Step 4: Make Changes and Test
+
+```bash
+# Make your changes
+# For PHP modules, ensure code follows Drupal coding standards
+# For modules with JS/UI, run linting and build
+
+# Test your changes locally
+```
+
+### Step 5: Commit and Push
+
+```bash
+# Stage changed files
+git add path/to/changed/files
+
+# Commit with proper message format
+git commit -m "$(cat <<'EOF'
+Issue #XXXXXXX: Short description
+
+- Bullet point of change 1
+- Bullet point of change 2
+- Bullet point of change 3
+EOF
+)"
+
+# Push to issue fork
+git push module_name-XXXXXXX XXXXXXX-short-description
+```
+
+### Step 6: Create Merge Request
+
+After pushing, you'll see a URL in the output:
+```
+remote: To create a merge request for XXXXXXX-short-description, visit:
+remote:   https://git.drupalcode.org/issue/module_name-XXXXXXX/-/merge_requests/new?merge_request%5Bsource_branch%5D=XXXXXXX-short-description
+```
+
+1. Visit that URL to create the merge request
+2. Return to the issue page on drupal.org
+3. Set issue status to "Needs review"
+
+### Commit Message Format
+
+Drupal.org standard format:
+```
+Issue #XXXXXXX: Short description (50 chars max)
+
+- Detail about what changed
+- Another detail
+- Technical implementation note
+```
+
+### Two-Repository Workflow
+
+When contributing to a module you also use in your project:
+
+1. **Contrib Repo** (`~/Sites/module-contrib/`) - Clean checkout for developing and contributing
+2. **App Repo** (`~/Sites/your-app/`) - Uses composer patches to apply changes
+
+**Benefits**:
+- Clean separation between contribution work and app usage
+- Patches can be applied/removed easily via Composer
+- App stays functional while iterating on the feature
+
+**Workflow**:
+```bash
+# 1. Develop in contrib repo
+cd ~/Sites/module-contrib
+# Make changes...
+
+# 2. Generate patch
+git diff > feature-name.patch
+
+# 3. Copy to app and apply via composer
+cp feature-name.patch ~/Sites/your-app/patches/
+# Add to composer.json patches section
+cd ~/Sites/your-app
+composer reinstall drupal/module_name
+
+# 4. Test in app, iterate as needed
+
+# 5. When ready, commit and push from contrib repo
+cd ~/Sites/module-contrib
+git add -A && git commit -m "Issue #XXXXXXX: Description"
+git push fork-remote branch-name
+```
+
+### Using Remote Patches (After MR Created)
+
+Once a merge request exists, you can use the remote diff URL:
+
+```json
+{
+  "extra": {
+    "patches": {
+      "drupal/module_name": {
+        "Feature (https://www.drupal.org/project/module_name/issues/XXXXXXX)": "https://git.drupalcode.org/project/module_name/-/merge_requests/XXX.diff"
+      }
+    }
+  }
+}
+```
+
 ## Reference Links
 
 - **Composer Patches**: https://github.com/cweagans/composer-patches
@@ -561,3 +955,7 @@ drush watchdog:show --severity=Error --count=20
 - **Upgrade Status Module**: https://www.drupal.org/project/upgrade_status
 - **Drupal 11 Deprecations**: https://www.drupal.org/about/core/policies/core-change-policies/drupal-deprecation-policy
 - **Patch Naming Standards**: https://www.drupal.org/node/1054616
+- **Creating Issue Forks**: https://www.drupal.org/docs/develop/git/using-gitlab-to-contribute-to-drupal/creating-issue-forks
+- **Issue Report Guide**: https://www.drupal.org/community/contributor-guide/reference-information/quick-info/creating-or-updating-an-issue-report
+- **Text Formatting Tips**: https://www.drupal.org/filter/tips
+- **Git Workflow for Drupal**: https://www.drupal.org/docs/develop/git/using-git-to-contribute-to-drupal

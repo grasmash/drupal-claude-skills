@@ -1,6 +1,6 @@
 # Contributing to Drupal Claude Skills
 
-Thank you for your interest in contributing to this project! This guide will help you get started.
+Thank you for your interest in contributing! This guide covers skills, agents, and content guidelines.
 
 ## How to Contribute
 
@@ -8,7 +8,6 @@ Thank you for your interest in contributing to this project! This guide will hel
 
 - Use GitHub Issues to report bugs or suggest improvements
 - Search existing issues first to avoid duplicates
-- Include clear descriptions and examples
 - For skill-specific content issues, consider reporting to upstream sources
 
 ### Suggesting New Skills
@@ -21,84 +20,128 @@ Before proposing a new skill:
 4. Consider if it could be a reference within an existing skill instead
 
 Good candidates for new skills:
-- Platform-specific patterns (Acquia, Platform.sh, etc.)
-- Tool-specific workflows (Lando, Composer, etc.)
-- Drupal subsystems (Layout Builder, Workflows, Media, etc.)
-- Development methodologies (BDD, migrations, etc.)
+- Drupal subsystems (Layout Builder, Workflows, Media, Paragraphs)
+- Platform-specific patterns (Acquia, Platform.sh, Pantheon)
+- Tool-specific workflows (Lando, Composer, PHPStan)
+- Development methodologies (BDD, migrations, API-first)
+- Drupal Commerce patterns
 
-### Improving Existing Skills
+### Suggesting New Agents
 
-We welcome improvements to existing skills:
+Agents are reusable AI workflows. Good candidates:
+- Development lifecycle stages (review, test, deploy)
+- Domain-specific specialists (accessibility, performance, migrations)
+- Quality gates and validation workflows
 
+### Improving Existing Content
+
+We welcome improvements to existing skills and agents:
 - Fix errors or outdated information
 - Add missing examples or patterns
 - Improve clarity and organization
 - Update for new Drupal versions
 
-## Skill Structure Requirements
+## Skill Format
 
-Each skill must follow this structure:
+Skills follow the [Agent Skills Specification](https://agentskills.io/specification).
 
-### Directory-Based Skill
-
-```
-.claude/skills/skill-name/
-├── SKILL.md              # Main skill file
-└── references/           # Optional detailed docs
-    ├── topic1.md
-    └── topic2.md
-```
-
-### Single-File Skill
+### Directory Structure
 
 ```
-.claude/skills/skill-name.md
+skills/skill-name/
+├── SKILL.md              # Required — main skill file
+├── references/           # Optional — detailed documentation
+│   ├── topic1.md
+│   └── topic2.md
+├── examples/             # Optional — example scripts
+└── scripts/              # Optional — executable code
 ```
 
-## SKILL.md Format
+### SKILL.md Requirements
 
 Every skill must have YAML frontmatter:
 
 ```yaml
 ---
 name: skill-name
-description: Complete description of what the skill does and when to use it. Should be detailed enough for semantic matching.
+description: Complete description including keywords for activation. Max 1024 chars.
 ---
 ```
 
-**Required sections:**
-1. **Title** - Clear, descriptive heading
-2. **When This Skill Activates** - Context that triggers this skill
-3. **Content** - Patterns, examples, and best practices
-4. **Sources/Credits** - Attribution for upstream content
+**Required fields:**
+- `name` — 1-64 chars, lowercase alphanumeric + hyphens, must match directory name
+- `description` — 1-1024 chars, include keywords that trigger this skill
 
-**Optional sections:**
-- Available Topics (for multi-file skills)
-- Quick Reference
-- Common Workflows
-- Troubleshooting
-- Related Skills
+**Content guidelines:**
+- Keep SKILL.md **under 500 lines** (agentskills.io best practice)
+- Use `references/` directory for detailed documentation
+- Add table of contents to reference files over 100 lines
+- Include "When This Skill Activates" section
+- Use progressive disclosure: summary in SKILL.md, details in references
 
-## Coding Standards
+### Example SKILL.md
 
-### Markdown Style
+```markdown
+---
+name: my-skill
+description: Brief description including trigger keywords. Mention topics, file types, and use cases.
+---
 
-- Use ATX-style headers (`#` not `===`)
-- Include blank lines before/after headers
-- Use fenced code blocks with language tags
-- Keep lines under 120 characters where practical
-- Use `-` for unordered lists, `1.` for ordered
+# My Skill
+
+## When This Skill Activates
+
+Describe the contexts that activate this skill.
+
+## Quick Reference
+
+Essential patterns and commands.
+
+## Available Topics
+
+- @references/topic1.md - Description
+- @references/topic2.md - Description
+```
+
+## Agent Format
+
+Agents live in `.claude/agents/` and use YAML frontmatter:
+
+```markdown
+---
+name: agent-name
+description: What the agent does and when to use it.
+tools: Read, Write, Edit, Glob, Grep, Bash
+model: sonnet
+---
+
+Agent instructions here...
+```
+
+**Frontmatter fields:**
+- `name` — Agent identifier
+- `description` — Purpose and trigger conditions
+- `tools` — Comma-separated list of allowed tools
+- `model` — `sonnet`, `haiku`, or `inherit`
+
+**Content guidelines:**
+- Include a clear process/checklist
+- Define output format
+- Keep instructions focused and actionable
+- Make agents generic (no project-specific references)
+
+## Content Guidelines
 
 ### Code Examples
 
 ```bash
 # Good: Generic, reusable
-ssh user@remote.server "cd /path/to/drupal && drush cr"
 ddev drush config:get {config.name}
+ssh user@remote.server "cd /path/to/drupal && drush cr"
 
 # Bad: Project-specific
-ssh admin@mysite.example.com "cd /var/www/html && drush cr"
 ddev drush config:get block.block.my_custom_block
+ssh admin@mysite.example.com "cd /var/www/html && drush cr"
 ```
 
 - Use `{placeholders}` for variable values
@@ -106,14 +149,12 @@ ddev drush config:get block.block.my_custom_block
 - Show both correct and incorrect patterns when helpful
 - Include expected output when relevant
 
-### File Organization
+### Neutrality
 
-- Keep related content together
-- Use descriptive reference file names
-- Avoid deeply nested directories
-- Follow existing naming conventions
-
-## Content Guidelines
+- No project-specific references (company names, domains, custom modules)
+- No personal credentials or tokens
+- No hardcoded domain names
+- Use generic placeholders
 
 ### Accuracy
 
@@ -122,104 +163,39 @@ ddev drush config:get block.block.my_custom_block
 - Note which Drupal versions apply
 - Update deprecated patterns
 
-### Clarity
-
-- Write for intermediate Drupal developers
-- Explain "why" not just "how"
-- Use concrete examples
-- Avoid jargon without explanation
-
-### Completeness
-
-- Cover common use cases
-- Include troubleshooting tips
-- Link to official documentation
-- Provide related patterns
-
-### Neutrality
-
-- No project-specific references
-- No personal credentials or tokens
-- No hardcoded domain names
-- Use generic placeholders
-
 ## Pull Request Process
 
-1. **Fork and Branch**
+1. **Fork and branch**
    ```bash
-   git checkout -b feature/improve-ddev-skill
+   git checkout -b feature/add-my-skill
    ```
 
-2. **Make Changes**
-   - Follow structure requirements
-   - Test with Claude Code
-   - Update relevant documentation
+2. **Make changes** following the format guidelines above
 
-3. **Commit**
-   ```bash
-   git add .claude/skills/drupal-ddev/
-   git commit -m "Add database snapshot workflow to DDEV skill"
-   ```
+3. **Verify**
+   - YAML frontmatter is valid
+   - No project-specific data (`grep -ri "myproject\|mysite\|example\.com" skills/`)
+   - SKILL.md files are under 500 lines
+   - Skill `name` matches directory name
+   - Code examples are tested
 
-4. **Test**
-   - Install skill locally
-   - Verify it activates correctly
-   - Test examples work
-   - Check for sensitive data
-
-5. **Submit PR**
-   - Clear description of changes
-   - Reference any related issues
-   - Explain testing performed
-
-## Testing Your Changes
-
-### Local Testing
-
-```bash
-# Copy to test project
-cp -r .claude /path/to/test/drupal/project/
-
-# Start Claude Code in test project
-cd /path/to/test/drupal/project
-claude
-```
-
-### Verification Checklist
-
-- [ ] YAML frontmatter is valid
-- [ ] Skill activates in relevant contexts
-- [ ] Code examples are tested
-- [ ] No sensitive/project-specific data
-- [ ] Markdown renders correctly
-- [ ] Links work
-- [ ] Credits/sources are accurate
+4. **Submit PR** with clear description and testing notes
 
 ## Syncing Upstream Content
 
-Skills with upstream sources should be updated periodically:
-
-### Drupal at Your Fingertips
+Two skills sync from external sources:
 
 ```bash
+# Drupal at Your Fingertips
 ./.claude/scripts/sync-d9book.sh
-```
 
-Updates from: https://drupalatyourfingertips.com
-
-### Ivan Grynenko Security Patterns
-
-```bash
+# Ivan Grynenko Security Patterns
 ./.claude/scripts/sync-ivan-rules.sh
 ```
 
-Updates from: https://github.com/ivangrynenko/cursorrules
-
-**Note**: Don't modify auto-synced reference files directly - they'll be overwritten. Instead, update the sync scripts or contribute upstream.
+Don't modify auto-synced reference files directly — they'll be overwritten. Instead, update the sync scripts or contribute upstream.
 
 ## Attribution
-
-### Upstream Sources
 
 Always credit original sources:
 
@@ -229,32 +205,10 @@ Always credit original sources:
 **License**: License Type
 ```
 
-### Your Contributions
-
-By contributing, you agree:
-- Your work is licensed under MIT (matching this project)
-- You have rights to contribute the content
-- You credit any sources appropriately
-
-## Community Standards
-
-- Be respectful and constructive
-- Focus on Drupal development best practices
-- Help others learn and improve
-- Follow Drupal community values
+By contributing, you agree your work is licensed under MIT (matching this project).
 
 ## Questions?
 
-- Open a GitHub Discussion for general questions
-- Use Issues for specific bugs/features
+- Open a GitHub Issue for bugs or feature requests
 - Check existing documentation first
 - Tag maintainers if urgent
-
-## Recognition
-
-Contributors will be:
-- Listed in commit history
-- Credited in release notes for significant contributions
-- Recognized in community announcements
-
-Thank you for helping make Drupal development with Claude Code better! 🚀

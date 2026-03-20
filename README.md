@@ -2,249 +2,177 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude-Code-orange.svg)](https://claude.com/claude-code)
-[![Drupal](https://img.shields.io/badge/Drupal-9%20%7C%2010%20%7C%2011-blue.svg)](https://www.drupal.org)
+[![Drupal](https://img.shields.io/badge/Drupal-10%20%7C%2011-blue.svg)](https://www.drupal.org)
+[![agentskills.io](https://img.shields.io/badge/spec-agentskills.io-purple.svg)](https://agentskills.io)
 
-A comprehensive collection of Claude AI skills for Drupal development, covering best practices, security patterns, configuration management, and module updates.
+A comprehensive collection of Claude Code skills and agents for Drupal development. Install battle-tested patterns for configuration management, module updates, security, local development, OAuth, search, and more.
 
-> **First comprehensive skill collection for Drupal + Claude Code** - Install these battle-tested skills to supercharge your Drupal development workflow with AI assistance.
+## Quick Install
 
-## Overview
+### Skills (via `npx skills`)
 
-These skills are designed to work with [Claude Code](https://claude.com/claude-code) and provide context-aware assistance for Drupal development tasks. They include comprehensive patterns from industry experts and cover modern Drupal 9, 10, and 11 development.
+```bash
+npx skills add grasmash/drupal-claude-skills
+```
 
-## Included Skills
+This copies all skills into your project's `.claude/skills/` directory. Works with Claude Code, Cursor, Codex, Gemini CLI, and any tool supporting the [agentskills.io specification](https://agentskills.io).
 
-### 1. Drupal at Your Fingertips
-**Source**: [drupalatyourfingertips.com](https://drupalatyourfingertips.com) by Selwyn Polit
+### Agents + Settings (manual)
 
-Comprehensive Drupal patterns covering 50+ topics including:
-- Core APIs (services, hooks, events, plugins)
-- Content management (nodes, fields, entities, paragraphs, taxonomy)
-- Forms and validation
-- Routing and controllers
-- Theming (Twig, render arrays, preprocess)
-- Caching and performance
-- Testing (PHPUnit, Drupal Test Traits)
-- Common patterns and best practices
+```bash
+# Copy agents
+cp -r .claude/agents/ /path/to/your/project/.claude/agents/
 
-**Location**: `.claude/skills/drupal-at-your-fingertips/`
+# Copy sample settings
+cp .claude/settings.json /path/to/your/project/.claude/settings.json
+```
 
-### 2. Drupal Contrib Module Management
-Comprehensive guide for managing Drupal contributed modules, including:
-- Composer-based module update workflows
-- Drupal 11 compatibility checking
-- Patch management with cweagans/composer-patches
-- Drupal Lenient plugin usage
-- Major version upgrade patterns
-- Troubleshooting dependency issues
+## What's Included
 
-**Location**: `.claude/skills/drupal-contrib-mgmt/`
+### 9 Skills (`skills/`)
 
-### 3. Drupal Configuration Management
-Safe patterns for inspecting and syncing Drupal configuration:
-- Read-only config inspection techniques
-- Avoiding accidental config imports
-- Safe remote drush patterns with `--no` flag
-- Syncing config between environments
-- Manual config editing workflows
+| Skill | Description |
+|-------|-------------|
+| **[drupal-at-your-fingertips](skills/drupal-at-your-fingertips/)** | 50+ Drupal topics from [Selwyn Polit's book](https://drupalatyourfingertips.com) — services, hooks, entities, forms, theming, caching, testing |
+| **[drupal-config-mgmt](skills/drupal-config-mgmt/)** | Configuration management — safe import/export, config splits (complete vs partial), environment syncing, merge workflows |
+| **[drupal-contrib-mgmt](skills/drupal-contrib-mgmt/)** | Contrib module management — Composer updates, patch management, Drupal 11 compatibility, drupal.org contribution workflow |
+| **[drupal-ddev](skills/drupal-ddev/)** | DDEV local development — setup, commands, database ops, Xdebug, performance (Mutagen), Docker/Mutagen troubleshooting |
+| **[ivangrynenko-cursorrules-drupal](skills/ivangrynenko-cursorrules-drupal/)** | OWASP Top 10 security patterns from [Ivan Grynenko](https://github.com/ivangrynenko/cursorrules) — auth, access control, injection prevention, crypto |
+| **[drupal-simple-oauth](skills/drupal-simple-oauth/)** | OAuth2 with simple_oauth — TokenAuthUser permissions, scope/role matching, field_permissions, CSRF bypass, debugging |
+| **[drupal-search-api](skills/drupal-search-api/)** | Search API — index configuration, boost processors, custom processors, config management, reindexing |
+| **[drupal-canvas](skills/drupal-canvas/)** | Drupal Canvas Code Components — scaffolding, Nebula template, Acquia Source Site Builder integration |
+| **[skill-developer](skills/skill-developer/)** | Meta-skill for creating new skills — agentskills.io spec, frontmatter schema, progressive disclosure, 500-line rule |
 
-**Location**: `.claude/skills/drupal-config-mgmt/`
+### 8 Agents (`.claude/agents/`)
 
-### 4. DDEV Local Development
-DDEV local development environment for Drupal:
-- .ddev/config.yaml complete reference
-- Essential DDEV commands and workflows
-- Database import/export operations
-- Xdebug debugging setup
-- Performance optimization (mutagen for macOS)
-- Custom commands and hooks
+| Agent | Description |
+|-------|-------------|
+| **quality-gate** | Pre-commit code review — security, performance, testing, regressions |
+| **done-gate** | Completion validator — builds pass, tests run, deliverables exist |
+| **drupal-specialist** | Drupal/PHP implementation — modules, hooks, services, Drush |
+| **frontend-specialist** | Frontend — Twig, SCSS, JavaScript, responsive design, accessibility |
+| **researcher** | Codebase exploration — architecture, patterns, execution paths |
+| **reviewer** | Code review — bugs, security, quality, actionable feedback |
+| **test-runner** | Test execution — PHP, JS, SCSS validation, build checks |
+| **test-writer** | ExistingSite test writing — bug reproduction, DTT patterns |
 
-**Location**: `.claude/skills/drupal-ddev/`
+### Settings (`.claude/settings.json`)
 
-### 5. Ivan Grynenko - Drupal Security Patterns
-**Source**: [Ivan Grynenko's Cursor Rules](https://github.com/ivangrynenko/cursorrules)
+Sample Drupal-safe permission patterns. Prompts for confirmation before destructive operations like `drush cim`, `drush sql-drop`, and `drush site:install`.
 
-OWASP Top 10 security patterns for Drupal:
-- Authentication and session management
-- Access control and permissions
-- SQL injection and XSS prevention
-- Cryptography and data protection
-- Security configuration
-- Dependency management
-- SSRF prevention
-- Secure design patterns
-- Software integrity and logging
+## Canvas Ecosystem
 
-**Location**: `.claude/skills/ivangrynenko-cursorrules-drupal/`
+For Drupal Canvas Code Components, this repo includes a lightweight `drupal-canvas` skill as an entry point. For the full 7-skill Canvas development suite:
 
-## Installation
+```bash
+npx skills add drupal-canvas/skills
+```
 
-### For Claude Code CLI
+Scaffold a new Canvas project:
 
-1. Copy the `.claude` directory to your Drupal project root:
-   ```bash
-   cp -r .claude /path/to/your/drupal/project/
-   ```
-
-2. The skills will automatically be available in Claude Code when working in that project.
-
-### For Global Use
-
-To make these skills available across all your projects:
-
-1. Copy to your Claude config directory (create if it doesn't exist):
-   ```bash
-   mkdir -p ~/.config/claude/skills
-   cp -r .claude/skills/* ~/.config/claude/skills/
-   ```
-
-2. Or create a symbolic link:
-   ```bash
-   ln -s /path/to/drupal-claude-skills/.claude/skills ~/.config/claude/skills/drupal
-   ```
+```bash
+npx @drupal-canvas/create my-project
+```
 
 ## Usage
 
-Once installed, Claude will automatically activate the appropriate skill based on your task context. For example:
+Skills activate automatically based on context:
 
-- Working with service injection → `drupal-at-your-fingertips` activates
-- Updating a module → `drupal-composer-updates` activates
-- Checking security → `ivangrynenko-cursorrules-drupal` activates
-- Managing config → `drupal-config-mgmt` activates
+- Working with config splits → `drupal-config-mgmt` activates
+- Updating a module → `drupal-contrib-mgmt` activates
+- Security review → `ivangrynenko-cursorrules-drupal` activates
+- OAuth debugging → `drupal-simple-oauth` activates
+- Local dev issue → `drupal-ddev` activates
 
-You can also explicitly invoke a skill by mentioning it in your prompt:
+You can also invoke skills explicitly:
 ```
-"Using the drupal-at-your-fingertips patterns, show me how to create a custom entity"
+"Using the drupal-config-mgmt skill, help me set up partial config splits"
 ```
 
-## Updating Skills
+## Repository Structure
 
-The original skills are maintained in a private repository. To sync updates:
+```
+skills/                              # Skills (agentskills.io format)
+├── drupal-at-your-fingertips/       #   50+ Drupal topics
+│   ├── SKILL.md
+│   └── references/
+├── drupal-config-mgmt/              #   Config management
+│   ├── SKILL.md
+│   └── references/
+├── drupal-contrib-mgmt/             #   Module management
+│   ├── SKILL.md
+│   ├── references/
+│   └── examples/
+├── drupal-ddev/                     #   DDEV local dev
+│   ├── SKILL.md
+│   └── references/
+├── ivangrynenko-cursorrules-drupal/ #   Security patterns
+│   ├── SKILL.md
+│   └── references/
+├── drupal-simple-oauth/             #   OAuth2 patterns
+│   └── SKILL.md
+├── drupal-search-api/               #   Search API patterns
+│   └── SKILL.md
+├── drupal-canvas/                   #   Canvas components
+│   └── SKILL.md
+└── skill-developer/                 #   Meta-skill for creating skills
+    └── SKILL.md
+.claude/
+├── agents/                          # Agent definitions
+│   ├── quality-gate.md
+│   ├── done-gate.md
+│   ├── drupal-specialist.md
+│   ├── frontend-specialist.md
+│   ├── researcher.md
+│   ├── reviewer.md
+│   ├── test-runner.md
+│   └── test-writer.md
+├── settings.json                    # Sample Drupal permissions
+└── scripts/                         # Upstream sync scripts
+    ├── sync-d9book.sh
+    └── sync-ivan-rules.sh
+```
+
+## Updating Upstream Skills
+
+Two skills sync from upstream sources:
 
 ```bash
-# Clone this repository
-cd ~/Sites/drupal-claude-skills
+# Sync Drupal at Your Fingertips references
+./.claude/scripts/sync-d9book.sh
 
-# Pull latest changes
-git pull origin main
+# Sync Ivan Grynenko security patterns
+./.claude/scripts/sync-ivan-rules.sh
 ```
 
 ## Contributing
 
-Contributions are welcome! Please follow these guidelines:
-
-1. **Maintain skill structure**: Each skill should have a `SKILL.md` file with metadata
-2. **Include references**: Place detailed documentation in `references/` subdirectories
-3. **Credit sources**: Always attribute original authors and link to source material
-4. **Test thoroughly**: Verify skills work with Claude Code before submitting
-5. **Follow Drupal standards**: Align with official Drupal coding standards
-
-### Skill Structure
-
-```
-.claude/skills/
-├── skill-name/
-│   ├── SKILL.md              # Main skill file with metadata
-│   └── references/           # Detailed reference documentation
-│       ├── topic1.md
-│       └── topic2.md
-└── simple-skill.md           # For single-file skills
-```
-
-### Skill File Format
-
-```markdown
----
-name: skill-name
-description: Brief description of when this skill activates
----
-
-# Skill Name
-
-**Source**: [Link to original content]
-**Author**: Author name
-**License**: License type
-
-## When This Skill Activates
-
-Description of contexts that activate this skill
-
-## Available Topics
-
-List of topics covered with links to references
-
-## Usage Patterns
-
-Common patterns and examples
-```
-
-## License
-
-This collection includes content from multiple sources:
-
-- **Drupal at Your Fingertips**: Open access documentation by Selwyn Polit
-- **Ivan Grynenko Cursor Rules**: MIT License
-- **Original compilation and scripts**: MIT License (see LICENSE file)
-
-Please respect individual content licenses when using or distributing.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+- Adding new skills (follow [agentskills.io spec](https://agentskills.io/specification))
+- Adding new agents
+- Improving existing content
+- Syncing upstream sources
 
 ## Credits
 
-- **Selwyn Polit** - [Drupal at Your Fingertips](https://drupalatyourfingertips.com)
-- **Ivan Grynenko** - [Cursor Rules for Drupal](https://github.com/ivangrynenko/cursorrules)
-- **Drupal Community** - For ongoing contributions to documentation and best practices
+- **[Selwyn Polit](https://drupalatyourfingertips.com)** — Drupal at Your Fingertips
+- **[Ivan Grynenko](https://github.com/ivangrynenko/cursorrules)** — Drupal security patterns
+- **Drupal Community** — Ongoing contributions to documentation and best practices
+
+## License
+
+MIT — see [LICENSE](LICENSE)
 
 ## Related Resources
 
-- [Claude Code Documentation](https://docs.claude.com/claude-code)
+- [agentskills.io Specification](https://agentskills.io/specification)
+- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code)
+- [Drupal Canvas Skills](https://github.com/drupal-canvas/skills)
 - [Drupal.org](https://drupal.org)
-- [Drupal API Reference](https://api.drupal.org)
-- [Upgrade Status Module](https://www.drupal.org/project/upgrade_status)
-
-## Support
-
-For issues or questions:
-- Open an issue on GitHub
-- Refer to individual skill sources for content-specific questions
-- Check [Claude Code documentation](https://docs.claude.com/claude-code) for skill usage
-
-## Why These Skills?
-
-### Fills a Gap
-The Claude Code ecosystem has skills for document manipulation, creative tools, and web development - but **nothing for CMS/PHP frameworks**. This is the first comprehensive skill collection for Drupal development.
-
-### Battle-Tested
-These patterns come from:
-- Years of production Drupal development
-- Industry expert documentation (Selwyn Polit, Ivan Grynenko)
-- Real-world security best practices (OWASP Top 10)
-- Modern Drupal 9/10/11 workflows
-
-### Context-Aware
-Skills activate automatically based on your task:
-- Updating modules? `drupal-contrib-mgmt` activates
-- Local development? `drupal-ddev` provides DDEV patterns
-- Security review? `ivangrynenko-cursorrules-drupal` enforces OWASP
-- Configuration management? `drupal-config-mgmt` ensures safety
-
-## Roadmap
-
-Future skills to add:
-- [ ] Drupal performance optimization patterns
-- [ ] Advanced theming with SDC (Single Directory Components)
-- [ ] API-first/Headless Drupal patterns
-- [ ] Drupal Commerce patterns
-- [ ] Migration patterns (Migrate API, Drupal 7 → 10)
-- [ ] Platform-specific hosting patterns (Acquia, Platform.sh, etc.)
-
-Want to contribute a skill? See [CONTRIBUTING.md](CONTRIBUTING.md)!
+- [DDEV Documentation](https://ddev.readthedocs.io)
 
 ---
 
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=grasmash/drupal-claude-skills&type=Date)](https://star-history.com/#grasmash/drupal-claude-skills&Date)
-
----
-
-Made with ❤️ for the Drupal community by developers who believe AI should understand your stack

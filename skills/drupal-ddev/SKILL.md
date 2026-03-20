@@ -171,21 +171,22 @@ ddev launch
 ### Database Sync from Remote
 
 ```bash
-# Get database backup from remote server
-# Method 1: Via SSH and drush sql-dump
-ssh user@remote.server "cd /path/to/drupal && drush sql-dump --gzip" > backup.sql.gz
+# Option 1: Download backup and import
+# Use your hosting provider's CLI or dashboard to create/download a DB backup
+# Example with a generic provider:
+scp user@remote.server:/path/to/backup.sql.gz backup.sql.gz
 
-# Method 2: Via platform-specific tools or download existing backup
-# (depends on your hosting platform)
-
-# Import to local DDEV
+# Import to local
 ddev import-db --file=backup.sql.gz
 
-# Run updates
+# Option 2: Using DDEV pull (if configured with a provider integration)
+ddev pull --environment=live
+
+# Run updates after import
 ddev drush updb -y
 ddev drush cr
 
-# Sanitize for local development (optional)
+# Sanitize for local (optional)
 ddev drush sql-sanitize -y
 ```
 
@@ -400,6 +401,88 @@ ddev restart
 # Or use NFS
 ddev config --nfs-mount-enabled=true
 ddev restart
+```
+
+### PHP Deprecation Warnings in Drush
+
+If you're seeing PHP deprecation warnings when running Drush commands (especially with PHP 8.4), create a custom PHP configuration file to suppress them:
+
+**`.ddev/php/drush.ini`**:
+```ini
+; Suppress PHP deprecation warnings for Drush commands
+[PHP]
+error_reporting = 22527
+display_errors = Off
+display_startup_errors = Off
+log_errors = On
+error_log = /tmp/php-errors.log
+```
+
+Then restart DDEV:
+```bash
+ddev restart
+```
+
+**How it works**:
+- `error_reporting = 22527` equals `E_ALL & ~E_DEPRECATED`
+- `display_errors = Off` prevents warnings from appearing on STDERR
+- `display_startup_errors = Off` suppresses bootstrap warnings
+- Errors are logged to `/tmp/php-errors.log` instead of being displayed
+
+This configuration applies to both web and CLI contexts since DDEV copies `.ddev/php/*.ini` files to both `/etc/php/[version]/cli/conf.d/` and `/etc/php/[version]/fpm/conf.d/`.
+
+### Docker Desktop overlay2 I/O Errors
+
+If Docker Desktop gets into a bad state producing overlay2 or containerd I/O errors such as:
+
+```
+Error response from daemon: error creating temporary lease: write /var/lib/desktop-containerd/daemon/io.containerd.metadata.v1.bolt/meta.db: input/output error
+```
+```
+Error response from daemon: open /var/lib/docker/overlay2/...: input/output error
+```
+
+A normal quit and restart of Docker Desktop is **not sufficient**. You must **force quit ALL Docker processes** (via Activity Monitor or `killall -9 Docker` / `killall -9 com.docker.hyperkit`), then relaunch Docker Desktop. Only a full force quit clears the corrupted state.
+
+### Unhealthy Containers / Mutagen Sync Hanging
+
+After Docker crashes or force-quits, DDEV can get into a bad state where:
+- `ddev start` hangs at "Starting Mutagen sync process..."
+- Web container reports unhealthy (`phpstatus:FAILED`, `mailpit:FAILED`)
+- `ddev mutagen reset` fails with "CreateOrResumeMutagenSync Failure"
+
+**Fix** (run in order):
+
+```bash
+# 1. Full power off to clean up all containers and networks
+ddev poweroff
+
+# 2. Start fresh
+ddev start
+```
+
+If `ddev poweroff` doesn't resolve it:
+
+```bash
+# 1. Stop DDEV
+ddev stop
+
+# 2. Reset the Mutagen daemon
+~/.ddev/bin/mutagen daemon stop
+~/.ddev/bin/mutagen daemon start
+
+# 3. Reset Mutagen sync (removes Docker volume, forces full resync)
+ddev mutagen reset
+
+# 4. Start fresh
+ddev start
+```
+
+**Monitoring commands** while troubleshooting:
+```bash
+ddev mutagen status -l      # Detailed sync status
+ddev mutagen monitor        # Real-time sync progress
+docker inspect --format "{{ json .State.Health }}" ddev-<project>-web  # Container health
 ```
 
 ---

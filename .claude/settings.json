@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(ddev drush config:import:*)",
+      "Bash(drush config:import:*)",
+      "Bash(ddev drush cim:*)",
+      "Bash(drush cim:*)",
+      "Bash(ddev drush config:export:*)",
+      "Bash(drush config:export:*)",
+      "Bash(ddev drush cex:*)",
+      "Bash(drush cex:*)",
+      "Bash(ddev drush sql-drop:*)",
+      "Bash(drush sql-drop:*)",
+      "Bash(ddev drush site:install:*)",
+      "Bash(drush site:install:*)"
+    ]
+  }
+}

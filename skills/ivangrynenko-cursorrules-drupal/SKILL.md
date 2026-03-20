@@ -58,6 +58,4 @@ See `/references/` directory for complete list.
 
 ---
 
----
-
 **To update**: Run `.claude/scripts/sync-ivan-rules.sh`
