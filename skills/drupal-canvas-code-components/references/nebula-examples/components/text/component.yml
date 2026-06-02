@@ -1,0 +1,44 @@
+name: Text
+machineName: text
+status: true
+required:
+  - textSize
+  - textColor
+props:
+  properties:
+    text:
+      title: Text
+      type: string
+      examples:
+        - Enter some text...
+      contentMediaType: text/html
+      x-formatting-context: block
+    textSize:
+      title: Text Size
+      type: string
+      examples:
+        - normal
+      enum:
+        - extra_small
+        - small
+        - normal
+        - large
+        - extra_large
+      meta:enum:
+        extra_small: Extra Small
+        small: Small
+        normal: Normal
+        large: Large
+        extra_large: Extra Large
+    textColor:
+      title: Text Color
+      type: string
+      examples:
+        - dark
+      enum:
+        - dark
+        - light
+      meta:enum:
+        dark: Dark
+        light: Light
+slots: []

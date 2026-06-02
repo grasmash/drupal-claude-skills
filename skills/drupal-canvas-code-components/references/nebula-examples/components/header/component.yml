@@ -1,0 +1,16 @@
+name: Header
+machineName: header
+status: true
+required: []
+props:
+  properties:
+    displaySearchForm:
+      title: Display Search Form
+      type: boolean
+      examples:
+        - true
+slots:
+  logo:
+    title: Logo
+  menu:
+    title: Menu

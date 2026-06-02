@@ -1,0 +1,21 @@
+name: Section
+machineName: section
+status: true
+required:
+  - width
+props:
+  properties:
+    width:
+      title: Width
+      type: string
+      examples:
+        - normal
+      enum:
+        - normal
+        - wide
+      meta:enum:
+        normal: Normal
+        wide: Wide
+slots:
+  content:
+    title: Content

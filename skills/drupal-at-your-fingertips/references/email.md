@@ -7,7 +7,7 @@
 
 ## Full Documentation
 
-**View online**: https://drupalatyourfingertips.com/email
+**View online**:
 
 This chapter covers:
 - Detailed explanations with code examples

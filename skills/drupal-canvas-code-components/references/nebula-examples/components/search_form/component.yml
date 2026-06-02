@@ -1,0 +1,7 @@
+name: Search form
+machineName: search_form
+status: true
+required: []
+props:
+  properties: []
+slots: []

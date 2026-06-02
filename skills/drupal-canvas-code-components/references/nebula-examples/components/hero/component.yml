@@ -1,0 +1,96 @@
+name: Hero
+machineName: hero
+status: true
+required:
+  - layout
+  - headingSize
+  - textColor
+props:
+  properties:
+    backgroundImage:
+      title: Background Image
+      type: object
+      examples:
+        - src: https://placehold.co/1920x1080@2x.png
+          alt: Example image placeholder
+          width: 1920
+          height: 1080
+      $ref: json-schema-definitions://canvas.module/image
+    layout:
+      title: Layout
+      type: string
+      examples:
+        - left_aligned
+      enum:
+        - left_aligned
+        - centered
+      meta:enum:
+        left_aligned: Left aligned
+        centered: Centered
+    preHeading:
+      title: Pre Heading
+      type: string
+      examples:
+        - Mission
+    headingElement:
+      title: Heading Element
+      type: string
+      examples:
+        - h2
+      enum:
+        - h1
+        - h2
+        - h3
+        - h4
+        - h5
+        - h6
+      meta:enum:
+        h1: h1
+        h2: h2
+        h3: h3
+        h4: h4
+        h5: h5
+        h6: h6
+    headingSize:
+      title: Heading Size
+      type: string
+      examples:
+        - extra_large
+      enum:
+        - extra_large
+        - large
+        - medium
+        - small
+      meta:enum:
+        extra_large: Extra Large
+        large: Large
+        medium: Medium
+        small: Small
+    heading:
+      title: Heading
+      type: string
+      examples:
+        - This space deserves a hero.
+    text:
+      title: Text
+      type: string
+      examples:
+        - >-
+          This is a space to welcome visitors to the site. Grab their attention
+          with copy that clearly states what the site is about.
+      contentMediaType: text/html
+      x-formatting-context: block
+    textColor:
+      title: Text Color
+      type: string
+      examples:
+        - dark
+      enum:
+        - dark
+        - light
+      meta:enum:
+        dark: Dark
+        light: Light
+slots:
+  buttons:
+    title: Buttons

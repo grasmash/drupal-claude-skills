@@ -1,0 +1,7 @@
+name: Search results
+machineName: search_results
+status: true
+required: []
+props:
+  properties: []
+slots: []

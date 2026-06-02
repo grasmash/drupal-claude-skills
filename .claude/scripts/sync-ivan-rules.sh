@@ -10,7 +10,7 @@ set -e
 UPSTREAM_REPO="https://raw.githubusercontent.com/ivangrynenko/cursorrules/main/.cursor/rules"
 UPSTREAM_API="https://api.github.com/repos/ivangrynenko/cursorrules/contents/.cursor/rules"
 UPSTREAM_URL="https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules"
-SKILLS_DIR="skills"
+SKILLS_DIR=".claude/skills"
 SKILL_NAME="ivangrynenko-cursorrules-drupal"
 SKILL_DIR="$SKILLS_DIR/$SKILL_NAME"
 
@@ -81,6 +81,8 @@ Each reference contains:
 - @references/file-permissions.md - File security and access control
 
 See `/references/` directory for complete list.
+
+---
 
 ---
 
@@ -197,6 +199,8 @@ $(cat "$temp_file")
 
 ---
 
+---
+
 **Last verified**: $(date -u +%Y-%m-%d)
 EOT
 
@@ -266,5 +270,5 @@ done
 echo ""
 echo "✅ Done! ivangrynenko-cursorrules-drupal skill created"
 echo ""
-echo "Skill: skills/ivangrynenko-cursorrules-drupal/"
+echo "Skill: .claude/skills/ivangrynenko-cursorrules-drupal/"
 echo "References: $topic_count topic reference files"

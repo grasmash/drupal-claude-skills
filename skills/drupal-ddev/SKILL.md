@@ -168,21 +168,17 @@ ddev drush cr
 ddev launch
 ```
 
-### Database Sync from Remote
+### Database Sync from Pantheon
 
 ```bash
-# Option 1: Download backup and import
-# Use your hosting provider's CLI or dashboard to create/download a DB backup
-# Example with a generic provider:
-scp user@remote.server:/path/to/backup.sql.gz backup.sql.gz
+# Get latest backup from Pantheon
+terminus backup:create site.env --element=db
+terminus backup:get site.env --element=db --to=backup.sql.gz
 
 # Import to local
 ddev import-db --file=backup.sql.gz
 
-# Option 2: Using DDEV pull (if configured with a provider integration)
-ddev pull --environment=live
-
-# Run updates after import
+# Run updates
 ddev drush updb -y
 ddev drush cr
 
@@ -507,6 +503,7 @@ ddev delete --omit-snapshot --yes <project-name>
 
 ## Related Skills
 
+- @drupal-pantheon - Deploy to Pantheon from DDEV
 - @drupal-config-mgmt - Config management workflows
 - @drupal-contrib-mgmt - Module management with Composer
 - @drupal-at-your-fingertips - General Drupal patterns

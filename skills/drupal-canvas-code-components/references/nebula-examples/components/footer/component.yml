@@ -1,0 +1,12 @@
+name: Footer
+machineName: footer
+status: true
+required: []
+props:
+  properties:
+    text:
+      title: Text
+      type: string
+      examples:
+        - "© 2025 Company Name. All rights reserved."
+slots: []

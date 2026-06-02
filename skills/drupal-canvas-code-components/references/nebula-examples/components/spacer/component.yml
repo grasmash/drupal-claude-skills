@@ -1,0 +1,23 @@
+name: Spacer
+machineName: spacer
+status: true
+required:
+  - height
+props:
+  properties:
+    height:
+      title: Height
+      type: string
+      examples:
+        - medium
+      enum:
+        - small
+        - medium
+        - large
+        - extra_large
+      meta:enum:
+        small: Small
+        medium: Medium
+        large: Large
+        extra_large: Extra Large
+slots: []

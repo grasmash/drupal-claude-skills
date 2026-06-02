@@ -66,19 +66,39 @@ Then add the agent workflow guide from [AGENTS.md](AGENTS.md) to your project's 
 
 ## What's Included
 
-### 9 Skills (`skills/`)
+### Skills (`skills/`)
+
+**Core Drupal**
 
 | Skill | Description |
 |-------|-------------|
 | **[drupal-at-your-fingertips](skills/drupal-at-your-fingertips/)** | 50+ Drupal topics from [Selwyn Polit's book](https://drupalatyourfingertips.com) — services, hooks, entities, forms, theming, caching, testing |
 | **[drupal-config-mgmt](skills/drupal-config-mgmt/)** | Configuration management — safe import/export, config splits (complete vs partial), environment syncing, merge workflows |
-| **[drupal-contrib-mgmt](skills/drupal-contrib-mgmt/)** | Contrib module management — Composer updates, patch management, Drupal 11 compatibility, drupal.org contribution workflow |
+| **[drupal-config-reconcile](skills/drupal-config-reconcile/)** | Resolve config drift item-by-item against a deployed env — import vs export vs skip, verify with the import transformer, never write to prod |
+| **[drupal-contrib-mgmt](skills/drupal-contrib-mgmt/)** | Contrib module management — Composer updates, composer-patches v2 (`patches.lock.json` + relock), Drupal 11 compatibility, drupal.org workflow |
 | **[drupal-ddev](skills/drupal-ddev/)** | DDEV local development — setup, commands, database ops, Xdebug, performance (Mutagen), Docker/Mutagen troubleshooting |
+| **[drupal-pantheon](skills/drupal-pantheon/)** | Pantheon platform — pantheon.yml, Terminus CLI workflows, environment management, deploy ordering (`updb` before `cim`) |
+| **[drupal-testing](skills/drupal-testing/)** | TDD with PHPUnit + DTT — bug-fix RED-first, bootstrap-level cost (Unit/Kernel/ExistingSite), the anonymous-403 permission trap, vacuous-pass pin |
 | **[ivangrynenko-cursorrules-drupal](skills/ivangrynenko-cursorrules-drupal/)** | OWASP Top 10 security patterns from [Ivan Grynenko](https://github.com/ivangrynenko/cursorrules) — auth, access control, injection prevention, crypto |
 | **[drupal-simple-oauth](skills/drupal-simple-oauth/)** | OAuth2 with simple_oauth — TokenAuthUser permissions, scope/role matching, field_permissions, CSRF bypass, debugging |
 | **[drupal-search-api](skills/drupal-search-api/)** | Search API — index configuration, boost processors, custom processors, config management, reindexing |
-| **[drupal-canvas](skills/drupal-canvas/)** | Drupal Canvas Code Components — scaffolding, Nebula template, Acquia Source Site Builder integration |
 | **[skill-developer](skills/skill-developer/)** | Meta-skill for creating new skills — agentskills.io spec, frontmatter schema, progressive disclosure, 500-line rule |
+
+**Drupal Canvas** (page builder — Twig SDC + React/JSX Code Components)
+
+| Skill | Description |
+|-------|-------------|
+| **[drupal-canvas](skills/drupal-canvas/)** | Canvas Code Components entry point — scaffolding, Nebula template, Acquia Source Site Builder integration |
+| **[drupal-canvas-sdc](skills/drupal-canvas-sdc/)** | Twig-based Single Directory Components — `component.yml` schemas, preview, instance version management |
+| **[drupal-canvas-code-components](skills/drupal-canvas-code-components/)** | React/JSX Code Components built in Storybook with Tailwind + CVA for the Canvas visual editor |
+| **[canvas-component-definition](skills/canvas-component-definition/)** | The canonical Canvas component contract — start here for create/modify/refactor/migrate/validate |
+| **[canvas-component-metadata](skills/canvas-component-metadata/)** | Valid `component.yml` metadata — props, slots, enums, CVA variant mapping |
+| **[canvas-component-composability](skills/canvas-component-composability/)** | Slots + decomposition-first patterns for Canvas-ready components |
+| **[canvas-component-utils](skills/canvas-component-utils/)** | Utility components — FormattedText (HTML/rich text), Image, media |
+| **[canvas-component-upload](skills/canvas-component-upload/)** | Upload validated components to Canvas and recover from upload/dependency failures |
+| **[canvas-styling-conventions](skills/canvas-styling-conventions/)** | Tailwind 4 theme tokens, `@theme` variables, CVA variants, `cn()` |
+| **[canvas-data-fetching](skills/canvas-data-fetching/)** | Fetch/render Drupal content with JSON:API + SWR — JsonApiClient, relationships, filters |
+| **[canvas-contribution](skills/canvas-contribution/)** | Contributing Canvas features/fixes upstream to drupal.org — issue forks, MRs, composer patches |
 
 ### 8 Agents (`.claude/agents/`)
 
@@ -99,11 +119,7 @@ Sample Drupal-safe permission patterns. Prompts for confirmation before destruct
 
 ## Canvas Ecosystem
 
-For Drupal Canvas Code Components, this repo includes a lightweight `drupal-canvas` skill as an entry point. For the full 7-skill Canvas development suite:
-
-```bash
-npx skills add drupal-canvas/skills
-```
+This repo ships a full Drupal Canvas skill suite (see the **Drupal Canvas** table above) covering both Twig SDC and React/JSX Code Components, the component contract, metadata, styling, data fetching, upload, and upstream contribution.
 
 Scaffold a new Canvas project:
 
@@ -181,6 +197,12 @@ Two skills sync from upstream sources:
 # Sync Ivan Grynenko security patterns
 ./.claude/scripts/sync-ivan-rules.sh
 ```
+
+## Recommended Companion Tools
+
+These aren't Drupal-specific, so they live outside this repo — but they pair well with these skills on real Drupal work. Install separately; they're optional.
+
+- **[caveman](https://github.com/JuliusBrussee/caveman)** — a token-compression skill that has the agent reply in a terse, fragmented style, cutting output tokens ~65–75% while keeping technical accuracy. Useful for long Drupal sessions (config audits, multi-file refactors) where verbose narration burns tokens. Toggle with `/caveman`; stop with "normal mode."
 
 ## Contributing
 

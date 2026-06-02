@@ -1,0 +1,53 @@
+/*
+ * Ensure your theme imports the font you're using in this file.
+ * Alternatively, you can load fonts purely in Code Components by importing a
+ * CSS file with the font declarations from a URL, i.e. a CDN. For example, you
+ * can uncomment the following line to use the Inter font.
+ * For local development, this is done in .storybook/preview-head.html.
+ */
+/* @import url("https://rsms.me/inter/inter.css"); */
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    Inter, Roboto, "Helvetica Neue", "Arial Nova", "Nimbus Sans", Arial,
+    sans-serif;
+
+  --color-primary-100: var(--color-blue-100);
+  --color-primary-200: var(--color-blue-200);
+  --color-primary-300: var(--color-blue-300);
+  --color-primary-400: var(--color-blue-400);
+  --color-primary-500: var(--color-blue-500);
+  --color-primary-600: var(--color-blue-600);
+  --color-primary-700: var(--color-blue-700);
+  --color-primary-800: var(--color-blue-800);
+  --color-primary-900: var(--color-blue-900);
+
+  /* use for light and dark blue text */
+  --color-primary-dark: var(--color-primary-700);
+  --color-primary-light: var(--color-slate-400);
+
+  --color-gray-50: var(--color-slate-50);
+  --color-gray-100: var(--color-slate-100);
+  --color-gray-200: var(--color-slate-200);
+  --color-gray-300: var(--color-slate-300);
+  --color-gray-400: var(--color-slate-400);
+  --color-gray-500: var(--color-slate-500);
+  --color-gray-600: var(--color-slate-600);
+  --color-gray-700: var(--color-slate-700);
+  --color-gray-800: var(--color-slate-800);
+  --color-gray-900: var(--color-slate-900);
+
+  /* use for light and dark gray text */
+  --color-gray-dark: var(--color-gray-700);
+  --color-gray-light: var(--color-gray-300);
+
+  /* use for light and dark default text */
+  --color-white: #ffffff;
+  --color-black: var(--color-slate-950);
+}
+
+html {
+  @apply text-slate-950;
+}

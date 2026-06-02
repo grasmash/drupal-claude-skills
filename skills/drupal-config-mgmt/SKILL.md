@@ -9,24 +9,24 @@ Comprehensive guide for Drupal configuration management including imports, expor
 
 ## Problem: Avoid Accidental Config Imports
 
-**CRITICAL**: Remote drush commands may default to `--yes` depending on your hosting setup. This means commands like `config:import` or `cim` can AUTO-CONFIRM and import configuration even when you only want to inspect differences.
+**CRITICAL**: Terminus drush commands default to `--yes` unless explicitly told `--no`. This means commands like `config:import` or `cim` will AUTO-CONFIRM and import configuration even when you only want to inspect differences.
 
 ### Dangerous vs Safe Patterns
 
-❌ **DANGEROUS** - May auto-import without confirmation:
+❌ **DANGEROUS** - Auto-imports without confirmation:
 ```bash
-ssh user@remote.server "cd /path/to/drupal && drush cim --diff"  # DON'T DO THIS!
+terminus drush {site}.{env} -- cim --diff  # DON'T DO THIS!
 ```
 
 ✅ **SAFE** - Shows diff without importing:
 ```bash
-ssh user@remote.server "cd /path/to/drupal && drush cim --no --diff"
+terminus drush {site}.{env} -- cim --no --diff
 ```
 
 ✅ **SAFEST** - Read-only commands:
 ```bash
-ssh user@remote.server "cd /path/to/drupal && drush config:get config.name"
-ssh user@remote.server "cd /path/to/drupal && drush config:status"
+terminus drush {site}.{env} -- config:get config.name
+terminus drush {site}.{env} -- config:status
 ```
 
 ## Table of Contents
@@ -55,8 +55,8 @@ git commit -m "feat: add new feature"
 
 **Step 2: Pull production database**
 ```bash
-ddev pull --environment=live
-# Or your preferred method for pulling a remote database
+ddev pull pantheon --environment=live
+# Or your preferred method
 ```
 
 **Step 3: Export config from prod DB**
@@ -110,21 +110,21 @@ git commit -m "chore: sync config from production"
 ```bash
 # After pulling prod DB and exporting config
 $ git status --short config/
- M config/default/core.entity_view_display.node.article.teaser.yml
- M config/default/field.storage.node.field_featured_image.yml
- D config/default/field.field.node.article.field_summary.yml
- D config/default/field.storage.node.field_summary.yml
- M config/default/views.view.content.yml
+ M config/default/core.entity_view_display.node.song.teaser.yml
+ M config/default/field.storage.group.field_member_count.yml
+ D config/default/field.field.node.song.field_child_song_count.yml
+ D config/default/field.storage.node.field_child_song_count.yml
+ M config/default/views.view.songs.yml
 
 # The D files are our new feature - restore them
-$ git checkout HEAD -- config/default/field.field.node.article.field_summary.yml \
-                       config/default/field.storage.node.field_summary.yml
+$ git checkout HEAD -- config/default/field.field.node.song.field_child_song_count.yml \
+                       config/default/field.storage.node.field_child_song_count.yml
 
 # Verify
 $ git status --short config/
- M config/default/core.entity_view_display.node.article.teaser.yml
- M config/default/field.storage.node.field_featured_image.yml
- M config/default/views.view.content.yml
+ M config/default/core.entity_view_display.node.song.teaser.yml
+ M config/default/field.storage.group.field_member_count.yml
+ M config/default/views.view.songs.yml
 
 # Our feature files are no longer in the diff - commit prod changes
 $ git add config/ && git commit -m "chore: sync config from production"
@@ -143,7 +143,7 @@ ddev drush config:export
 ddev drush cex
 
 # Remote
-ssh user@remote.server "cd /path/to/drupal && drush config:export"
+terminus drush {site}.{env} -- config:export
 ```
 
 **Export a SINGLE config object**:
@@ -163,8 +163,8 @@ ddev drush config:get views.view.content --format=yaml > config/default/views.vi
 ddev drush config:import
 ddev drush cim
 
-# Remote (DANGEROUS - may auto-confirm!)
-ssh user@remote.server "cd /path/to/drupal && drush config:import --no"  # Use --no to preview only
+# Remote (DANGEROUS - auto-confirms with terminus!)
+terminus drush {site}.{env} -- config:import --no  # Use --no to preview only
 ```
 
 **Import a SINGLE config object**:
@@ -258,14 +258,14 @@ When split is **inactive**: devel and kint are completely removed
 - API keys that differ per environment
 - Email settings (different SMTP per environment)
 - Cache settings (aggressive in prod, disabled in local)
-- Search server URLs (local Solr vs remote search server)
+- Search server URLs (local Solr vs Pantheon Search)
 
 **Example**: Different search servers per environment
 
 Base config (`config/default/search_api.server.main.yml`):
 ```yaml
 backend_config:
-  connector: solr_cloud
+  connector: pantheon_search
   # Production settings
 ```
 
@@ -279,7 +279,7 @@ backend_config:
 ```
 
 When local split is **active**: Uses local Solr
-When local split is **inactive**: Uses production search server
+When local split is **inactive**: Uses Pantheon Search
 
 **Reference**: See admin form at `/admin/config/development/configuration/config-split/{split-name}`:
 > "Partial Split (Conditional Override): Keep the selected configuration, but override it when the split is active. The configuration will exist in the sync directory, but the version from this split will be used instead when the split is active."
@@ -394,27 +394,27 @@ Use `config:get` and `config:status` for read-only inspection, or use `--no` fla
 
 ```bash
 # Get full config object
-ssh user@remote.server "cd /path/to/drupal && drush config:get config.name"
+terminus drush {site}.{env} -- config:get config.name
 
 # Get as YAML
-ssh user@remote.server "cd /path/to/drupal && drush config:get config.name --format=yaml"
+terminus drush {site}.{env} -- config:get config.name --format=yaml
 
 # Extract specific values
-ssh user@remote.server "cd /path/to/drupal && drush config:get config.name 2>&1 | grep 'setting_name'"
+terminus drush {site}.{env} -- config:get config.name 2>&1 | grep "setting_name"
 ```
 
 ### Compare Local vs Remote
 
 ```bash
 # View diffs without importing (SAFE with --no)
-ssh user@remote.server "cd /path/to/drupal && drush cim --no --diff"
+terminus drush {site}.{env} -- cim --no --diff
 
 # Get remote and compare manually
-ssh user@remote.server "cd /path/to/drupal && drush config:get config.name --format=yaml" > /tmp/remote.yml
+terminus drush {site}.{env} -- config:get config.name --format=yaml > /tmp/remote.yml
 diff -u config/default/config.name.yml /tmp/remote.yml
 ```
 
-**CRITICAL**: Always use `--no` flag with remote drush! Without it, commands may auto-confirm.
+**CRITICAL**: Always use `--no` flag with terminus! Without it, commands auto-confirm.
 
 ### Apply Changes
 
@@ -434,24 +434,24 @@ git commit -m "Update config from {env}"
 
 **Single config object**:
 ```bash
-ssh user@remote.server "cd /path/to/drupal && drush config:get config.name --format=yaml" > config/default/config.name.yml
+terminus drush {site}.{env} -- config:get config.name --format=yaml > config/default/config.name.yml
 git add config/default/config.name.yml && git commit -m "Update from {env}"
 ddev drush config:import --partial
 ```
 
-**Full config sync via rsync/scp**:
+**Full config sync via rsync**:
 ```bash
-ssh user@remote.server "cd /path/to/drupal && drush cex"
-rsync -avz user@remote.server:/path/to/drupal/config/default/ /tmp/remote/
+terminus drush {site}.{env} -- cex
+terminus rsync {site}.{env}:code/config/default /tmp/remote
 diff -r config/default /tmp/remote  # Review
 cp /tmp/remote/*.yml config/default/
 git add config/default/ && git commit -m "Sync from {env}"
 ddev drush cim
 ```
 
-**Via database pull** (DDEV):
+**Via database pull** (DDEV + Pantheon):
 ```bash
-ddev pull --environment={env}  # Warning: Overwrites local DB!
+ddev pull pantheon --environment={env}  # Warning: Overwrites local DB!
 ddev drush cex
 git diff config/ && git add config/ && git commit -m "Config from {env}"
 ```
@@ -477,7 +477,7 @@ Check what config would be imported (read-only):
 ddev drush config:status
 
 # Remote environment
-ssh user@remote.server "cd /path/to/drupal && drush config:status"
+terminus drush {site}.{env} -- config:status
 ```
 
 ## Best Practices
@@ -519,7 +519,7 @@ ddev drush cex  # Export to save activation state
 
 ### Config deleted from config/default on export
 
-**COMMON ISSUE**: Config (like `search_api.server.main`) gets removed from `config/default/` when you run `drush cex`.
+**COMMON ISSUE**: Config (like `search_api.server.pantheon_search`) gets removed from `config/default/` when you run `drush cex`.
 
 **Root cause (99% of cases)**: Config is in `complete_list` instead of `partial_list`!
 
@@ -539,13 +539,13 @@ grep -A10 "partial_list:" config/default/config_split.config_split.local.yml
 
 ```bash
 # Edit the split definition
-# Move: search_api.server.main
+# Move: search_api.server.pantheon_search
 # FROM: complete_list
 # TO: partial_list
 
 ddev drush cex  # Re-export
-# Check that config/default/search_api.server.main.yml exists
-# Check that config/local/config_split.patch.search_api.server.main.yml exists
+# Check that config/default/search_api.server.pantheon_search.yml exists
+# Check that config/local/config_split.patch.search_api.server.pantheon_search.yml exists
 ```
 
 See [config-split-deep-dive.md](references/config-split-deep-dive.md) for complete technical explanation.
