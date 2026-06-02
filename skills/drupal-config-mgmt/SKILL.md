@@ -11,10 +11,10 @@ Comprehensive guide for Drupal configuration management including imports, expor
 
 Examples below use Pantheon's **Terminus** (`terminus drush <site>.<env> -- <cmd>`). The commands are identical on any host — substitute your platform's remote-drush form. If your platform provides Drush site aliases, the generic `drush @<alias> <cmd>` works everywhere.
 
-| Task | Generic (Drush aliases) | Pantheon (Terminus) | Acquia (`acli`) | Platform.sh / Upsun | Lagoon (amazee.io) |
+| Task | Acquia (`acli`) | Pantheon (Terminus) | Platform.sh / Upsun | Lagoon (amazee.io) | Generic (Drush aliases) |
 |---|---|---|---|---|---|
-| Remote drush | `drush @<alias> <cmd>` | `terminus drush <site>.<env> -- <cmd>` | `acli remote:drush -- <cmd>` | `platform drush -e <env> -- <cmd>` (Upsun: `upsun drush …`) | `lagoon ssh -p <project> -e <env> -C "drush <cmd>"` |
-| Get/inspect config | `drush @<alias> config:get <name>` | `terminus drush <site>.<env> -- config:get <name>` | `acli remote:drush -- config:get <name>` | `platform drush -e <env> -- config:get <name>` | `lagoon ssh -p <project> -e <env> -C "drush config:get <name>"` |
+| Remote drush | `acli remote:drush -- <cmd>` | `terminus drush <site>.<env> -- <cmd>` | `platform drush -e <env> -- <cmd>` (Upsun: `upsun drush …`) | `lagoon ssh -p <project> -e <env> -C "drush <cmd>"` | `drush @<alias> <cmd>` |
+| Get/inspect config | `acli remote:drush -- config:get <name>` | `terminus drush <site>.<env> -- config:get <name>` | `platform drush -e <env> -- config:get <name>` | `lagoon ssh -p <project> -e <env> -C "drush config:get <name>"` | `drush @<alias> config:get <name>` |
 
 > **The auto-confirm warning below applies to every host** — append `--no` to `cim`/`config:import` to preview instead of apply. Drush defaults to `--yes` when invoked non-interactively (which all remote-CLI wrappers do).
 

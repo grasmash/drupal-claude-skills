@@ -21,14 +21,14 @@ For every divergent config item, exactly one of three things is true, and you pi
 
 Examples below use Pantheon's **Terminus**. The workflow is the same on any host — substitute your platform's remote-drush command. If your platform provides Drush site aliases, the generic `drush @<alias> <cmd>` form works everywhere and is the simplest baseline.
 
-| Task | Generic (Drush aliases) | Pantheon (Terminus) | Acquia (`acli`) | Platform.sh / Upsun | Lagoon (amazee.io) |
+| Task | Acquia (`acli`) | Pantheon (Terminus) | Platform.sh / Upsun | Lagoon (amazee.io) | Generic (Drush aliases) |
 |---|---|---|---|---|---|
-| Remote drush | `drush @<alias> <cmd>` | `terminus drush <site>.<env> -- <cmd>` | `acli remote:drush -- <cmd>` | `platform drush -e <env> -- <cmd>` (Upsun: `upsun drush …`) | `lagoon ssh -p <project> -e <env> -C "drush <cmd>"` |
-| Refresh non-prod DB from prod | `drush sql:sync @<prod> @<env>` | `terminus env:clone-content <site>.live <env> --db-only` | Cloud UI **Copy database** / `acli api:environments:database-copy` | `platform sync data` (Upsun: `upsun sync data`) | drush `sql:sync` or a Lagoon post-rollout task |
-| Pull DB to local | `drush sql:sync @<env> @self` | (drush `sql:sync`) | `acli pull:db` | `platform db:dump` | `lagoon ssh … -C "drush sql:dump"` |
-| Get Drush aliases | aliases in `drush/sites/` | `terminus aliases` | `acli remote:aliases:download` | `platform`-provided `@platform.<env>` | `drush sa` (Lagoon-provided) |
+| Remote drush | `acli remote:drush -- <cmd>` | `terminus drush <site>.<env> -- <cmd>` | `platform drush -e <env> -- <cmd>` (Upsun: `upsun drush …`) | `lagoon ssh -p <project> -e <env> -C "drush <cmd>"` | `drush @<alias> <cmd>` |
+| Refresh non-prod DB from prod | Cloud UI **Copy database** / `acli api:environments:database-copy` | `terminus env:clone-content <site>.live <env> --db-only` | `platform sync data` (Upsun: `upsun sync data`) | drush `sql:sync` or a Lagoon post-rollout task | `drush sql:sync @<prod> @<env>` |
+| Pull DB to local | `acli pull:db` | (drush `sql:sync`) | `platform db:dump` | `lagoon ssh … -C "drush sql:dump"` | `drush sql:sync @<env> @self` |
+| Get Drush aliases | `acli remote:aliases:download` | `terminus aliases` | `platform`-provided `@platform.<env>` | `drush sa` (Lagoon-provided) | aliases in `drush/sites/` |
 
-> **Auth/link once per platform:** Pantheon `terminus auth:login`; Acquia `acli auth:login` + `acli link`; Platform.sh/Upsun `platform login` / `upsun login`; Lagoon `lagoon login`. Never run write/clone operations *into* production on any of them.
+> **Auth/link once per platform:** Acquia `acli auth:login` + `acli link`; Pantheon `terminus auth:login`; Platform.sh/Upsun `platform login` / `upsun login`; Lagoon `lagoon login`. Never run write/clone operations *into* production on any of them.
 
 ## Workflow
 

@@ -92,6 +92,7 @@ The React/JSX Code Component skills (component definition, metadata, composabili
 | **[drupal-canvas](skills/drupal-canvas/)** | Canvas Code Components entry point — scaffolding, Nebula template, Acquia Source Site Builder integration |
 | **[drupal-canvas-sdc](skills/drupal-canvas-sdc/)** | Twig-based Single Directory Components — `component.yml` schemas, preview, instance version management (the official suite is React/JSX only) |
 | **[canvas-contribution](skills/canvas-contribution/)** | Contributing Canvas features/fixes upstream to drupal.org — issue forks, MRs, composer patches |
+| **[acquia-source](skills/acquia-source/)** | Connect to an Acquia Source CMS — JSON:API (`/api`) + OAuth2, the MCP server (`claude mcp add`), the `@drupal-canvas` CLI, and Canvas Page API deploy pitfalls |
 
 ### 8 Agents (`.claude/agents/`)
 

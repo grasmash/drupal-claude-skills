@@ -655,8 +655,8 @@ git commit -m "Update module_name with production optimization"
 git push origin master
 
 # 5. Rebuild caches on the remote env (use your platform's remote-drush form):
-terminus drush <site>.<env> -- cr            # Pantheon
-# acli remote:drush -- cr                     # Acquia
+acli remote:drush -- cr                       # Acquia
+# terminus drush <site>.<env> -- cr           # Pantheon
 # platform drush -e <env> -- cr               # Platform.sh (Upsun: upsun drush -- cr)
 # lagoon ssh -p <project> -e <env> -C "drush cr"   # Lagoon / amazee.io
 # drush @<alias> cr                            # generic, any host with Drush aliases
