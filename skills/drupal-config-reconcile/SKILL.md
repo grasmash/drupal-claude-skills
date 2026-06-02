@@ -17,6 +17,19 @@ For every divergent config item, exactly one of three things is true, and you pi
 
 > **Never run config write operations against production.** This workflow only *reads* from a reference environment and only *writes* to local files. It never writes to any remote database.
 
+### Remote CLI — host-neutral
+
+Examples below use Pantheon's **Terminus**. The workflow is the same on any host — substitute your platform's remote-drush command. If your platform provides Drush site aliases, the generic `drush @<alias> <cmd>` form works everywhere and is the simplest baseline.
+
+| Task | Generic (Drush aliases) | Pantheon (Terminus) | Acquia (`acli`) | Platform.sh / Upsun | Lagoon (amazee.io) |
+|---|---|---|---|---|---|
+| Remote drush | `drush @<alias> <cmd>` | `terminus drush <site>.<env> -- <cmd>` | `acli remote:drush -- <cmd>` | `platform drush -e <env> -- <cmd>` (Upsun: `upsun drush …`) | `lagoon ssh -p <project> -e <env> -C "drush <cmd>"` |
+| Refresh non-prod DB from prod | `drush sql:sync @<prod> @<env>` | `terminus env:clone-content <site>.live <env> --db-only` | Cloud UI **Copy database** / `acli api:environments:database-copy` | `platform sync data` (Upsun: `upsun sync data`) | drush `sql:sync` or a Lagoon post-rollout task |
+| Pull DB to local | `drush sql:sync @<env> @self` | (drush `sql:sync`) | `acli pull:db` | `platform db:dump` | `lagoon ssh … -C "drush sql:dump"` |
+| Get Drush aliases | aliases in `drush/sites/` | `terminus aliases` | `acli remote:aliases:download` | `platform`-provided `@platform.<env>` | `drush sa` (Lagoon-provided) |
+
+> **Auth/link once per platform:** Pantheon `terminus auth:login`; Acquia `acli auth:login` + `acli link`; Platform.sh/Upsun `platform login` / `upsun login`; Lagoon `lagoon login`. Never run write/clone operations *into* production on any of them.
+
 ## Workflow
 
 ### 1. Pick a reference environment (never `live`/`prod`)
@@ -28,7 +41,7 @@ Use a non-production environment as the prod stand-in (e.g. Pantheon `dev`/`test
 The diff is only meaningful if the reference env reflects current production. If the env's DB is stale (commonly >24h), refresh it from live first. On Pantheon:
 
 ```bash
-terminus env:clone-content <site>.live <env> --db-only -y
+terminus env:clone-content <site>.live <env> --db-only -y   # Pantheon; see the table above for acli / platform / upsun / lagoon
 ```
 
 Cloning modifies a shared environment and takes minutes — **confirm with the user first; never do it silently.** (Note: most platforms can't reliably tell you when an env was last refreshed — `terminus backup:list` reports *backup* recency, not clone-from-live recency. Treat it as a weak hint and ask.)
@@ -38,7 +51,7 @@ Cloning modifies a shared environment and takes minutes — **confirm with the u
 Run `config:status` **on the reference env** so Drupal applies config splits and `config_exclude_modules` correctly — a local run produces false positives from dev-only modules (devel, views_ui, a prod split, etc.):
 
 ```bash
-terminus drush <site>.<env> -- config:status --format=json
+terminus drush <site>.<env> -- config:status --format=json   # or your platform's remote-drush form (see table)
 ```
 
 States you'll see:
@@ -53,7 +66,7 @@ Empty list → "in sync, nothing to reconcile" → stop.
 Do **not** reach for `config:export --destination` + scp — config_split commonly fails trying to create its relative split dir under a temp destination, and SSH-command discovery is brittle across Terminus versions. Fetch each item on demand:
 
 ```bash
-terminus drush <site>.<env> -- config:get <name> --format=yaml > /tmp/ref-<name>.yml
+terminus drush <site>.<env> -- config:get <name> --format=yaml > /tmp/ref-<name>.yml   # or your platform's remote-drush form
 ```
 
 `config:get --format=yaml` emits the exact file format Drupal exports (no `_core` key) — byte-identical to tracked sibling files.

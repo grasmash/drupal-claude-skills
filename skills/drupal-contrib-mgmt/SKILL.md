@@ -654,8 +654,12 @@ git commit -m "Update module_name with production optimization"
 # 4. Push to production
 git push origin master
 
-# 5. On production (if using terminus/drush remote)
-terminus drush <site>.<env> -- cr
+# 5. Rebuild caches on the remote env (use your platform's remote-drush form):
+terminus drush <site>.<env> -- cr            # Pantheon
+# acli remote:drush -- cr                     # Acquia
+# platform drush -e <env> -- cr               # Platform.sh (Upsun: upsun drush -- cr)
+# lagoon ssh -p <project> -e <env> -C "drush cr"   # Lagoon / amazee.io
+# drush @<alias> cr                            # generic, any host with Drush aliases
 ```
 
 **NEVER commit vendor/ with dev dependencies to production branches!**
