@@ -68,19 +68,11 @@ After quality-gate passes and before telling the user work is complete, spawn th
 
 ### Local Execution Verification (mandatory)
 
-For any fix or feature that changes runtime behavior (cron jobs, drush commands, data processing, API endpoints, service logic), you MUST execute the changed code path locally via DDEV and verify the results before declaring done. Unit tests passing is not sufficient — run the actual command/service and confirm the real-world outcome. This catches issues that tests miss: environment differences, data-dependent bugs, and integration failures.
+For any fix or feature that changes runtime behavior (cron jobs, drush commands, data processing, API endpoints, service logic), you MUST execute the changed code path locally via DDEV and verify the results before declaring done — passing unit tests is not sufficient. See the `drupal-testing` skill for the full discipline.
 
 ### CI Test Fix Workflow
 
-When CI fails with test errors, do NOT iterate by pushing commits and re-running the full suite. Instead:
-
-1. **Identify the failing tests** from the CI logs
-2. **Reproduce locally** — run the specific failing tests in your local environment
-3. **Fix each failing test** and run it individually until it passes (e.g., `vendor/bin/phpunit --filter ClassName::testMethod`)
-4. **Commit the fix** to the branch
-5. **Only re-run the full CI suite** after all individual tests pass locally
-
-This avoids wasting CI minutes on known-broken tests.
+When CI fails with test errors, fix the named tests locally and run them individually until green before re-running the full suite — don't burn CI minutes iterating on known-broken tests. See the `drupal-testing` skill for the step-by-step workflow.
 
 ### Contrib/Core Patch Policy
 

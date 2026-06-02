@@ -59,6 +59,10 @@ If a whole class of tests suddenly "passes" while running **0 assertions**, susp
 - PHPUnit 10+ uses **PHP 8 attributes** (`#[Group('x')]`), not `@group` docblock annotations. `--exclude-group`/`--group` won't match legacy annotations — migrate to attributes.
 - Sanity check: a passing test run should report a non-trivial assertion count. `OK (0 tests, 0 assertions)` for a suite you know has tests means the runner isn't collecting them.
 
+## Verify the real code path locally — passing unit tests aren't enough
+
+For any change to runtime behavior (cron jobs, drush commands, data processing, API endpoints, service logic), **execute the changed code path locally and confirm the real-world outcome** before declaring it done — don't stop at green unit tests. Run the actual command/service (e.g. via DDEV: `ddev drush <command>`), then check the resulting state (DB rows, updated field values, emitted output). This catches what tests miss: environment differences, data-dependent bugs, and integration failures across the real installed site. Unit/Kernel tests prove the logic in isolation; only running it proves the wiring.
+
 ## CI: fix failing tests locally, not by re-pushing
 
 When CI fails on test errors, don't iterate by pushing commits and re-running the full suite (often ~20 min/run):
