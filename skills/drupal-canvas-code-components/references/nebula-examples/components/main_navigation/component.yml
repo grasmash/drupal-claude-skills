@@ -1,7 +1,0 @@
-name: Main navigation
-machineName: main_navigation
-status: true
-required: []
-props:
-  properties: []
-slots: []

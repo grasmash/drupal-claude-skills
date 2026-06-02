@@ -77,27 +77,20 @@ Then add the agent workflow guide from [AGENTS.md](AGENTS.md) to your project's 
 | **[drupal-config-reconcile](skills/drupal-config-reconcile/)** | Resolve config drift item-by-item against a deployed env — import vs export vs skip, verify with the import transformer, never write to prod |
 | **[drupal-contrib-mgmt](skills/drupal-contrib-mgmt/)** | Contrib module management — Composer updates, composer-patches v2 (`patches.lock.json` + relock), Drupal 11 compatibility, drupal.org workflow |
 | **[drupal-ddev](skills/drupal-ddev/)** | DDEV local development — setup, commands, database ops, Xdebug, performance (Mutagen), Docker/Mutagen troubleshooting |
-| **[drupal-pantheon](skills/drupal-pantheon/)** | Pantheon platform — pantheon.yml, Terminus CLI workflows, environment management, deploy ordering (`updb` before `cim`) |
 | **[drupal-testing](skills/drupal-testing/)** | TDD with PHPUnit + DTT — bug-fix RED-first, bootstrap-level cost (Unit/Kernel/ExistingSite), the anonymous-403 permission trap, vacuous-pass pin |
 | **[ivangrynenko-cursorrules-drupal](skills/ivangrynenko-cursorrules-drupal/)** | OWASP Top 10 security patterns from [Ivan Grynenko](https://github.com/ivangrynenko/cursorrules) — auth, access control, injection prevention, crypto |
 | **[drupal-simple-oauth](skills/drupal-simple-oauth/)** | OAuth2 with simple_oauth — TokenAuthUser permissions, scope/role matching, field_permissions, CSRF bypass, debugging |
 | **[drupal-search-api](skills/drupal-search-api/)** | Search API — index configuration, boost processors, custom processors, config management, reindexing |
 | **[skill-developer](skills/skill-developer/)** | Meta-skill for creating new skills — agentskills.io spec, frontmatter schema, progressive disclosure, 500-line rule |
 
-**Drupal Canvas** (page builder — Twig SDC + React/JSX Code Components)
+**Drupal Canvas** (page builder)
+
+The React/JSX Code Component skills (component definition, metadata, composability, styling, data fetching, etc.) are maintained upstream — install them from the official suite rather than duplicating here (see [Canvas Ecosystem](#canvas-ecosystem)). This repo ships only the complements that suite doesn't cover:
 
 | Skill | Description |
 |-------|-------------|
 | **[drupal-canvas](skills/drupal-canvas/)** | Canvas Code Components entry point — scaffolding, Nebula template, Acquia Source Site Builder integration |
-| **[drupal-canvas-sdc](skills/drupal-canvas-sdc/)** | Twig-based Single Directory Components — `component.yml` schemas, preview, instance version management |
-| **[drupal-canvas-code-components](skills/drupal-canvas-code-components/)** | React/JSX Code Components built in Storybook with Tailwind + CVA for the Canvas visual editor |
-| **[canvas-component-definition](skills/canvas-component-definition/)** | The canonical Canvas component contract — start here for create/modify/refactor/migrate/validate |
-| **[canvas-component-metadata](skills/canvas-component-metadata/)** | Valid `component.yml` metadata — props, slots, enums, CVA variant mapping |
-| **[canvas-component-composability](skills/canvas-component-composability/)** | Slots + decomposition-first patterns for Canvas-ready components |
-| **[canvas-component-utils](skills/canvas-component-utils/)** | Utility components — FormattedText (HTML/rich text), Image, media |
-| **[canvas-component-upload](skills/canvas-component-upload/)** | Upload validated components to Canvas and recover from upload/dependency failures |
-| **[canvas-styling-conventions](skills/canvas-styling-conventions/)** | Tailwind 4 theme tokens, `@theme` variables, CVA variants, `cn()` |
-| **[canvas-data-fetching](skills/canvas-data-fetching/)** | Fetch/render Drupal content with JSON:API + SWR — JsonApiClient, relationships, filters |
+| **[drupal-canvas-sdc](skills/drupal-canvas-sdc/)** | Twig-based Single Directory Components — `component.yml` schemas, preview, instance version management (the official suite is React/JSX only) |
 | **[canvas-contribution](skills/canvas-contribution/)** | Contributing Canvas features/fixes upstream to drupal.org — issue forks, MRs, composer patches |
 
 ### 8 Agents (`.claude/agents/`)
@@ -119,7 +112,13 @@ Sample Drupal-safe permission patterns. Prompts for confirmation before destruct
 
 ## Canvas Ecosystem
 
-This repo ships a full Drupal Canvas skill suite (see the **Drupal Canvas** table above) covering both Twig SDC and React/JSX Code Components, the component contract, metadata, styling, data fetching, upload, and upstream contribution.
+The core Drupal Canvas Code Component skills (component definition, metadata, composability, utils, styling, data fetching, push, regions, page definition, …) are maintained in the official **[drupal-canvas/skills](https://github.com/drupal-canvas/skills)** repo. Install them directly rather than relying on a fork:
+
+```bash
+npx skills add drupal-canvas/skills
+```
+
+This repo intentionally does **not** duplicate those — it adds only the complements the official suite doesn't cover: `drupal-canvas-sdc` (Twig SDC) and `canvas-contribution` (contributing upstream to drupal.org). Use them alongside the official suite.
 
 Scaffold a new Canvas project:
 
