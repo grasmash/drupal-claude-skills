@@ -23,6 +23,9 @@ ddev pull pantheon --environment=live
 ```
 
 **Step 3: Export config from prod DB**
+
+This is one of the few places a full export is the point. It is safe only because Step 1 left the tree clean and Steps 4 to 6 review every file; never run it over uncommitted work. See [surgical-config.md](surgical-config.md).
+
 ```bash
 ddev drush config:export -y
 ```
@@ -37,7 +40,7 @@ git status --short config/        # See added/modified/deleted
 
 Look for these patterns:
 - **D (Deleted)** - Your new feature files deleted by prod export → **REVERT**
-- **M (Modified)** - UUID changes from prod → **KEEP**
+- **M (Modified)** - UUID changes from prod → **KEEP** (a UUID mismatch makes the next import delete and recreate the config entity, so prod's UUID must win)
 - **M (Modified)** - Actual prod config changes → **KEEP**
 - **M (Modified)** - Local changes overwritten → **REVERT** (case by case)
 

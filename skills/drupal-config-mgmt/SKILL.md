@@ -54,9 +54,11 @@ terminus drush {site}.{env} -- config:status
 
 ## Configuration Import & Export Basics
 
+> **Default to one named object at a time.** A blanket `cex` writes every active-vs-sync difference to disk and a blanket `cim` imports (and deletes) every difference, so in a tree with drift you did not create they sweep that drift into your commit or your database. An agent changes config with `config:get` / `config:set` / `config:delete` / a partial import of one file, and leaves the full import to the deploy (the tail is in the `drupal-deploy-safety` skill). Run a blanket export only from a clean, committed tree when a full export is the point (a prod config merge, a split change), and review `git status config/` afterwards. Full rules: [surgical-config.md](references/surgical-config.md).
+
 ### Exporting Configuration
 
-**Export ALL configuration** (from active config to YAML files):
+**Export ALL configuration** (from active config to YAML files; clean tree only, see above):
 ```bash
 # Local
 ddev drush config:export
@@ -77,7 +79,7 @@ ddev drush config:get views.view.content --format=yaml > config/default/views.vi
 
 ### Importing Configuration
 
-**Import ALL configuration** (from YAML files to active config):
+**Import ALL configuration** (from YAML files to active config; this is what a deploy does, so preview locally and leave remote imports to the deploy tail):
 ```bash
 # Local
 ddev drush config:import
@@ -87,11 +89,11 @@ ddev drush cim
 terminus drush {site}.{env} -- config:import --no  # Use --no to preview only
 ```
 
-**Import a SINGLE config object**:
+**Import a SINGLE config object** (partial import from a directory holding only that file; under DDEV the directory must be inside the project, see [surgical-config.md](references/surgical-config.md#the-single-config-toolkit)):
 ```bash
-# Delete from active config first, then import
-ddev drush config:delete config.name
-ddev drush config:import --partial --source=config/default
+mkdir -p .config-one && cp config/default/config.name.yml .config-one/
+ddev drush config:import --partial --source=/var/www/html/.config-one -y
+rm -rf .config-one
 
 # Or use config:set for specific values
 ddev drush config:set config.name key.subkey value
@@ -113,8 +115,8 @@ ddev drush cim --no --diff            # Alias
 
 **Workflow**:
 1. Edit `config/default/config_split.config_split.{name}.yml`
-2. **Import to make active**: `ddev drush config:import --partial` OR use PHP (see below)
-3. Export: `ddev drush cex`
+2. **Import to make active**: a single-file partial import (see above) OR use PHP (see below)
+3. Export: `ddev drush cex`. This is the one routine case that needs a full export, because config_split writes the split directory and its patch files during `cex`. Start from a clean tree and revert anything in `git status config/` you did not intend.
 
 **Quick method - Set active config via PHP**:
 ```bash
@@ -243,7 +245,7 @@ git commit -m "Update config from {env}"
 ```bash
 terminus drush {site}.{env} -- config:get config.name --format=yaml > config/default/config.name.yml
 git add config/default/config.name.yml && git commit -m "Update from {env}"
-ddev drush config:import --partial
+# Then apply that one file locally with a single-file partial import (see above)
 ```
 
 **Full config sync via rsync**:
@@ -259,7 +261,7 @@ git add config/default/ && git commit -m "Sync from {env}"
 ddev drush cim
 ```
 
-**Via database pull** (DDEV + Pantheon):
+**Via database pull** (DDEV + Pantheon). This is a deliberate full export: commit your own work first and restore any of your files the export deletes, as in [prod-config-merge.md](references/prod-config-merge.md):
 ```bash
 ddev pull pantheon --environment={env}  # Warning: Overwrites local DB!
 ddev drush cex
@@ -335,7 +337,8 @@ ddev drush config-split:status
 Manually activate:
 ```bash
 ddev drush config-split:activate {split-name}
-ddev drush cex  # Export to save activation state
+# Save the activation state: export only the split definition
+ddev drush config:get config_split.config_split.{split-name} --format=yaml > config/default/config_split.config_split.{split-name}.yml
 ```
 
 ### Config deleted from config/default on export

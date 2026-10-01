@@ -13,7 +13,7 @@ For every divergent config item, exactly one of three things is true, and you pi
 
 - **Import = disk → DB.** The tracked file is the source of truth; it deploys to the environment on the next code deploy + config import. No file change — you keep what's in git.
 - **Export = DB → disk.** The environment's value wins; you write its config into your tracked files (or `git rm` the file if the environment doesn't have it).
-- **Skip.** Leave the divergence unresolved and move on (the right call for benign `uuid`/`_core`-only diffs).
+- **Skip.** Leave the divergence unresolved and move on (the right call for a `_core`-only diff).
 
 > **Never run config write operations against production.** This workflow only *reads* from a reference environment and only *writes* to local files. It never writes to any remote database.
 
@@ -90,7 +90,8 @@ Create a todo list (one entry per config name) so progress is visible. Process i
    - `Only in DB` → **Export.** Config created in the environment (UI or update hook) that should be captured into git (message templates, view displays, etc.).
    - `Only in sync` → **Import.** New config added in code, not yet deployed; keep it and let it deploy.
    - `Different`:
-     - Only `uuid` and/or `_core` differ → **Skip** (benign environment artifact; don't churn files).
+     - Only `_core` differs → **Skip** (benign environment artifact; don't churn files).
+     - `uuid` differs → **Export.** Not benign: when the sync file's `uuid` differs from the active one, `StorageComparer::addChangelistUpdate()` marks the config entity for **recreation** (delete, then create) on the next import. For a field storage that drops the field's data. The environment's UUID has to win.
      - Env has real intentional-looking value changes → **Export.**
      - Local file has intentional code changes → **Import.**
      - Genuinely unclear → present both sides plainly, default to **Skip**, let the user decide.
@@ -120,10 +121,10 @@ foreach (["<name1>","<name2>"] as $n) {
 - **Kept for deploy (import):** items whose local version reaches the env on next deploy.
 - **Skipped:** unresolved divergences and why.
 
-Then show `git status` + `git diff --stat config/`, and **do not auto-commit or push** — ask first. Remember that Import items only take effect after the code deploys and a config import runs on the environment.
+Then show `git status` + `git diff --stat config/`, and **do not auto-commit or push** — ask first. Remember that Import items only take effect after the code deploys and a config import runs on the environment (the full deploy tail and its verification are in the `drupal-deploy-safety` skill).
 
 ## Gotchas
 
 - `config:status` on the reference env compares *that env's* sync dir vs its DB — it won't see your **uncommitted** local edits. Commit/deploy your edits first, then reconcile remaining drift.
 - Config splits: `prod`/`local` split items live in `config/prod` / `config/local`, not `config/default`. Always write Export results back to the file's real location.
-- `uuid`-only or `_core`-only diffs are almost always benign — don't churn files over them.
+- `_core`-only diffs are benign — don't churn files over them. A `uuid` diff is not: importing it deletes and recreates the config entity, so export the environment's value.

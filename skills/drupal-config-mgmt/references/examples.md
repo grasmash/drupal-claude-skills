@@ -101,11 +101,16 @@ When you edit a config split definition:
 
 **Why this matters**: Config Split reads from active configuration when exporting, so file edits alone won't work!
 
+**Full exports here are deliberate.** config_split writes the split directory and its patch files during `cex`, so split changes are the routine case that needs a full export. Start from a clean, committed tree, then review `git status config/` and revert anything you did not intend. Everywhere else, export one object at a time ([surgical-config.md](surgical-config.md)).
+
 ### Method 1: Import the Change
 
 ```bash
-# After editing config/default/config_split.config_split.local.yml
-ddev drush config:import --partial --source=config/default
+# After editing config/default/config_split.config_split.local.yml, import ONLY that file
+# (--source=config/default would import every difference in the directory)
+mkdir -p .config-one && cp config/default/config_split.config_split.local.yml .config-one/
+ddev drush config:import --partial --source=/var/www/html/.config-one -y
+rm -rf .config-one
 
 # Or import specific config
 ddev drush config:set config_split.config_split.local complete_list []
