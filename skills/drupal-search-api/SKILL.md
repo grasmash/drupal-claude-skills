@@ -223,7 +223,7 @@ echo \"Configuration updated\n\";
 
 **After PHP Config Updates:**
 1. Verify changes: `ddev drush config:get search_api.index.{index_name} field_settings.field_featured`
-2. Export to files: `ddev drush config:export -y`
+2. Export that one object: `ddev drush config:get search_api.index.{index_name} --format=yaml > config/default/search_api.index.{index_name}.yml` (a blanket `config:export` also sweeps unrelated drift; see the `drupal-config-mgmt` skill)
 3. Review exported changes: `git diff config/default/`
 4. Revert any unintended changes (e.g., ngram fields changed to plain text)
 
@@ -252,7 +252,7 @@ ddev drush php:eval "
 \$config->set('field_settings.title.type', 'solr_text_custom:ngramstring');
 \$config->save();
 "
-ddev drush config:export -y
+ddev drush config:get search_api.index.{index_name} --format=yaml > config/default/search_api.index.{index_name}.yml
 ```
 
 **Fields Using ngram Tokenization:**

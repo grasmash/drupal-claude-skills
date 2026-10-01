@@ -53,8 +53,13 @@ Deliberate staleness is fine ONLY for the **hours** bucket and must be called
 out explicitly. The failure mode this prevents: stale feeds, week-late
 stats, "I did the thing and don't see it reflected."
 
-**The asymmetry:** switching a view's result cache to **time-based (a TTL)**
-trades freshness for hit-rate and is only safe for the hours bucket.
+**The asymmetry:** a **TTL-only** cache (a cache item or response with a
+max-age and no invalidating tags) trades freshness for hit-rate and is only
+safe for the hours bucket. Core's Views `Time` plugin is not TTL-only: it
+stores results with the same tags as `Tag` and adds the TTL as an upper
+bound (results cache: tags + `results_lifespan` expiry; output cache: the
+same tags + `output_lifespan` as max-age), so switching a view to `Time` neither loses tag freshness nor stops
+tag churn (for churn, see lesson 5).
 **Tag-based** stays fresh-on-write and is the default for everything users
 act on. Removing a per-*user* cache context (to collapse Dynamic Page Cache
 cardinality) is NOT the same as adding a TTL — it keeps the freshness tags,

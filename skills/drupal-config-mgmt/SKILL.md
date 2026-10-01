@@ -54,9 +54,11 @@ terminus drush {site}.{env} -- config:status
 
 ## Configuration Import & Export Basics
 
+> **Default to one named object at a time.** A blanket `cex` writes every active-vs-sync difference to disk and a blanket `cim` imports (and deletes) every difference, so in a tree with drift you did not create they sweep that drift into your commit or your database. An agent changes config with `config:get` / `config:set` / `config:delete` / a partial import of one file, and leaves the full import to the deploy (the tail is in the `drupal-deploy-safety` skill). Run a blanket export only from a clean, committed tree when a full export is the point (a prod config merge, a split change), and review `git status config/` afterwards. Full rules: [surgical-config.md](references/surgical-config.md).
+
 ### Exporting Configuration
 
-**Export ALL configuration** (from active config to YAML files):
+**Export ALL configuration** (from active config to YAML files; clean tree only, see above):
 ```bash
 # Local
 ddev drush config:export
@@ -77,7 +79,7 @@ ddev drush config:get views.view.content --format=yaml > config/default/views.vi
 
 ### Importing Configuration
 
-**Import ALL configuration** (from YAML files to active config):
+**Import ALL configuration** (from YAML files to active config; this is what a deploy does, so preview locally and leave remote imports to the deploy tail):
 ```bash
 # Local
 ddev drush config:import
@@ -87,11 +89,11 @@ ddev drush cim
 terminus drush {site}.{env} -- config:import --no  # Use --no to preview only
 ```
 
-**Import a SINGLE config object**:
+**Import a SINGLE config object** (partial import from a directory holding only that file; under DDEV the directory must be inside the project, see [surgical-config.md](references/surgical-config.md#the-single-config-toolkit)):
 ```bash
-# Delete from active config first, then import
-ddev drush config:delete config.name
-ddev drush config:import --partial --source=config/default
+mkdir -p .config-one && cp config/default/config.name.yml .config-one/
+ddev drush config:import --partial --source=/var/www/html/.config-one -y
+rm -rf .config-one
 
 # Or use config:set for specific values
 ddev drush config:set config.name key.subkey value
@@ -113,8 +115,8 @@ ddev drush cim --no --diff            # Alias
 
 **Workflow**:
 1. Edit `config/default/config_split.config_split.{name}.yml`
-2. **Import to make active**: `ddev drush config:import --partial` OR use PHP (see below)
-3. Export: `ddev drush cex`
+2. **Import to make active**: a single-file partial import (see above) OR use PHP (see below)
+3. Export: `ddev drush cex`. This is the one routine case that needs a full export, because config_split writes the split directory and its patch files during `cex`. Start from a clean tree and revert anything in `git status config/` you did not intend.
 
 **Quick method - Set active config via PHP**:
 ```bash
@@ -158,10 +160,15 @@ ddev drush config-split:import {split-name}
 ddev drush csim {split-name}
 ```
 
-**Import only base config (ignore splits)**:
+**Import only base config (ignore splits)**: Drush 13's `config:import` has no option for this (`--skip-modules` was Drush 8). `drush config-split:deactivate <split>` itself imports the config without the split, writing `status: false` into active config; a later full `config:import` re-activates the split if its synced YAML has `status: true`. To keep it off across imports, set a status override: `drush config-split:status-override <split> inactive` (stored in state; values `active|inactive|default`, alias `csso`), or in `settings.php`:
 ```bash
-ddev drush config:import --skip-modules=config_split
+ddev drush config-split:deactivate {split-name}                     # one-off
+ddev drush config-split:status-override {split-name} inactive       # sticks across imports
 ```
+```php
+$config['config_split.config_split.{split-name}']['status'] = FALSE;  // settings.php
+```
+A `--partial` import skips config transformation, so no split is applied to it at all.
 
 ### Activate/Deactivate Splits
 
@@ -225,9 +232,10 @@ diff -u config/default/config.name.yml /tmp/remote.yml
 
 ### Apply Changes
 
-**Preferred**: Edit config files directly, then commit:
+**Preferred**: never hand-author the YAML. Either make the change in the site (UI, `config:set` for simple config, or the entity API for config entities) and export that one object, or, to take an environment's value, write that environment's `config:get` output for the one object (see [surgical-config.md](references/surgical-config.md)):
 ```bash
-# Use Edit tool on config/default/config.name.yml
+ddev drush config:get config.name --format=yaml > config/default/config.name.yml
+# or: terminus drush {site}.{env} -- config:get config.name --format=yaml > config/default/config.name.yml
 git diff config/default/config.name.yml
 git add config/default/config.name.yml
 git commit -m "Update config from {env}"
@@ -243,7 +251,7 @@ git commit -m "Update config from {env}"
 ```bash
 terminus drush {site}.{env} -- config:get config.name --format=yaml > config/default/config.name.yml
 git add config/default/config.name.yml && git commit -m "Update from {env}"
-ddev drush config:import --partial
+# Then apply that one file locally with a single-file partial import (see above)
 ```
 
 **Full config sync via rsync**:
@@ -259,7 +267,7 @@ git add config/default/ && git commit -m "Sync from {env}"
 ddev drush cim
 ```
 
-**Via database pull** (DDEV + Pantheon):
+**Via database pull** (DDEV + Pantheon). This is a deliberate full export: commit your own work first and restore any of your files the export deletes, as in [prod-config-merge.md](references/prod-config-merge.md):
 ```bash
 ddev pull pantheon --environment={env}  # Warning: Overwrites local DB!
 ddev drush cex
@@ -304,7 +312,7 @@ terminus drush {site}.{env} -- config:status
 ## Best Practices
 
 1. **Always inspect before importing** - Use `config:get` and `--no --diff` flags
-2. **Manual edits preferred** - Edit config files directly for precision
+2. **Change config in the site, export one object** - UI / `config:set` / entity API, then `config:get --format=yaml`; hand-editing exported YAML is the exception (it skips dependency calculation), and when you do it, import that one file and confirm with `config:status`
 3. **One config type per commit** - Separate concerns for clean history
 4. **Clear commit messages** - Reference source environment
 5. **Clean up temp files** - Remove temporary YAML files
@@ -335,7 +343,8 @@ ddev drush config-split:status
 Manually activate:
 ```bash
 ddev drush config-split:activate {split-name}
-ddev drush cex  # Export to save activation state
+# Save the activation state: export only the split definition
+ddev drush config:get config_split.config_split.{split-name} --format=yaml > config/default/config_split.config_split.{split-name}.yml
 ```
 
 ### Config deleted from config/default on export
@@ -375,13 +384,10 @@ See [config-split-deep-dive.md](references/config-split-deep-dive.md) for comple
 
 Common issues:
 - **Dependencies missing**: Install required modules first
-- **UUID mismatch**: Use `--partial` flag
-- **Locked config**: Some config (like system.site) has immutable values
+- **Site UUID mismatch** ("Site UUID in source storage does not match the target storage"): the database was installed separately from the exported config. Install from config with `drush site:install --existing-config`, or set `system.site:uuid` to the exported value with `drush config:set system.site uuid <uuid>`
+- **Config entity UUID differs**: not an error, but the import deletes and recreates that entity (for a field storage, its data goes with it); see the `drupal-config-reconcile` skill
 
-```bash
-# Skip specific config during import
-ddev drush config:import --skip-config=system.site
-```
+Drush 13's `config:import` has no `--skip-config` option. To keep one object out of an import, use the `config_ignore` module or a single-file partial import (above).
 
 ## Related Commands
 

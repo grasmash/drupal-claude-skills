@@ -21,11 +21,10 @@ composer require drupal/module_name:^3.0 --with-all-dependencies
 # Update multiple modules
 composer require drupal/module_a drupal/module_b --with-all-dependencies
 
-# After any update, ALWAYS run database updates
+# After any update, ALWAYS run database updates (updatedb rebuilds caches when it finishes)
 drush updb -y
 
-# Clear cache if needed
-drush cr
+# On a deployed environment, use the full deploy tail instead; see the drupal-deploy-safety skill
 
 # CRITICAL: Test by visiting pages to check for fatal errors
 # Visit at least one page that uses the updated module
@@ -124,7 +123,7 @@ Key differences in 2.x:
 - Uses `git apply` instead of `patch` binary (more reliable)
 - `enable-patching` option removed (patching is always enabled)
 - Better error messages and debugging
-- **CRITICAL — the `patches.lock.json` apply source**: v2 applies patches from `patches.lock.json` on `composer install` / `composer reinstall`. It does **NOT** read `extra.patches` in `composer.json` during those commands — only `composer update` and `composer patches-relock` re-read `composer.json` and regenerate the lock. So adding a patch to `composer.json` and running `composer install` applies **nothing** for that patch until you relock. This is the #1 cause of patches that "keep regressing": local dev looks fixed (you hand-applied it or ran `update`), but the next clean install — CI, a teammate, a fresh deploy — reads the stale lock and drops the patch. **Always run `composer patches-relock` after editing `extra.patches`, and commit `patches.lock.json`.**
+- **CRITICAL — the `patches.lock.json` apply source**: v2 applies patches from `patches.lock.json` whenever Composer installs or updates a package (`composer install`, `update`, `reinstall`, `patches-repatch`). None of those re-read `extra.patches` in `composer.json`: only `composer patches-relock`, or a missing `patches.lock.json`, regenerates the lock (composer-patches 2.0.0, `Patches::loadLockedPatches()`). So adding a patch to `composer.json` and running `composer install` or `composer update` applies **nothing** for that patch until you relock. This is the #1 cause of patches that "keep regressing": local dev looks fixed (you hand-applied it or ran `update`), but the next clean install — CI, a teammate, a fresh deploy — reads the stale lock and drops the patch. **Always run `composer patches-relock` after editing `extra.patches`, and commit `patches.lock.json`.**
 
 ### Verifying Patches Are Applied
 
@@ -148,7 +147,7 @@ Key differences in 2.x:
 **Adding a new patch** (the relock step is the one everyone forgets):
 1. Drop the `.patch` file in `patches/`
 2. Register it in `composer.json` under `extra.patches`
-3. **Run `composer patches-relock`** — adds the patch to `patches.lock.json`. WITHOUT this, step 4's `composer install` applies nothing (v2 reads the lock, not `composer.json`).
+3. **Run `composer patches-relock`** — adds the patch to `patches.lock.json`. WITHOUT this, step 4 applies nothing (v2 reads the lock, not `composer.json`).
 4. Run `composer reinstall drupal/module_name` (or `composer patches-repatch`) to apply the patch to the working tree — v2 patches a package only when Composer installs or updates it, so a plain `composer install` does not re-patch a module that is already installed
 5. **`git add` and commit** `composer.json`, `patches.lock.json`, and the new `.patch` file. If the project commits contrib code, commit the modified contrib file too — platforms that deploy from git without running `composer install` can't apply patches on their own, so the committed contrib file must already be in its patched form
 6. **Write a behavior test for the patched functionality** (see below)
@@ -191,17 +190,18 @@ Search the issue queue for an existing patch BEFORE writing one; the step-by-ste
 ### Patch Application
 
 ```bash
-# Install with patches
+# Fresh checkout: packages are installed and patched from patches.lock.json
 composer install
 
-# If patches fail, composer will error
-# Update or remove failing patches, then retry
-composer install
+# After ANY change to extra.patches (add, edit, remove), relock first
+composer patches-relock
 
-# Re-patch a single module (most common)
-composer update drupal/module_name
+# Re-patch a single module (most common). A plain `composer install` or
+# `composer update` does nothing for a package that is already installed at
+# the locked version, so its patches are not re-applied.
+composer reinstall drupal/module_name
 
-# Re-patch ALL patched dependencies (use when changing multiple patches)
+# Re-patch ALL patched dependencies (deletes and reinstalls them)
 composer patches-repatch
 ```
 
@@ -220,8 +220,7 @@ The six-step upgrade_status workflow (analyze, identify, fix custom code, `.info
 - [ ] Search for and apply necessary patches
 - [ ] Confirm every existing patch on the module has a behavior test, and run it after the bump
 - [ ] Run `composer require drupal/module_name:^X.0 --with-all-dependencies`
-- [ ] Run `drush updb -y`
-- [ ] Run `drush cr`
+- [ ] Run `drush updb -y` (it rebuilds caches at the end; on a deployed environment run the full tail from the `drupal-deploy-safety` skill)
 - [ ] Run `drush upgrade_status:analyze module_name`
 - [ ] Test module functionality by visiting relevant pages
 - [ ] Check for PHP errors/warnings in logs
@@ -241,6 +240,7 @@ composer show drupal/module_name
 
 # 3. Update composer.json with new patch URL
 # 4. Or remove patch if merged upstream
+# 5. Either way: composer patches-relock && composer reinstall drupal/module_name
 ```
 
 ### Version Conflict
@@ -254,7 +254,9 @@ composer show drupal/module_name
 
 ```bash
 # Error: "patch ... has already been applied"
-# Module maintainer merged the patch - remove from composer.json
+# Module maintainer merged the patch - remove from composer.json, then
+composer patches-relock
+composer reinstall drupal/module_name
 ```
 
 ### Database Update Fails
@@ -262,7 +264,8 @@ composer show drupal/module_name
 ```bash
 # Error during drush updb
 # 1. Check error message carefully
-# 2. May need to disable module, update, re-enable
+# 2. Last resort only: pm:uninstall DELETES the module's config and stored data.
+#    Back up the database first, and never do this on a module holding data you need.
 drush pm:uninstall module_name
 composer require drupal/module_name --with-all-dependencies
 drush pm:enable module_name
@@ -284,51 +287,18 @@ drush updb -y
 
 ## Production Deployment
 
-When deploying to production environments (Pantheon, Acquia, etc.), always optimize the Composer install:
+For hosts that deploy committed git state (no `composer install` on the server), build the committed vendor without dev packages:
 
 ```bash
-# CRITICAL: Always use these flags for production
-composer install --no-dev -o
-
-# --no-dev: Excludes development dependencies (phpunit, rector, etc.)
-# -o (--optimize-autoloader): Optimizes autoloader for performance
+composer update drupal/module_name --with-all-dependencies   # the change itself
+composer install --no-dev -o                                   # then build the vendor you commit
+git add composer.json composer.lock vendor/                    # vendor/autoload.php + vendor/composer/ together
 ```
 
-**Why This Matters**:
-- `--no-dev` reduces codebase size by excluding testing/dev tools
-- `-o` creates optimized class maps for faster autoloading
-- Reduces security surface by excluding dev dependencies
-- Improves performance on production servers
+- Never commit the dev autoloader left behind by a later plain `composer install`.
+- Stage `vendor/autoload.php`, `vendor/composer/` and the package directories together; a partial stage is a site-wide `ComposerAutoloaderInit... not found` fatal. Pinning `config.autoloader-suffix`, the three suffix files, and a pre-commit check are in the `drupal-deploy-safety` skill (§8).
+- Pushing changes code only. On the target, run the deploy tail (looped `updatedb` → `cache:rebuild` → `config:import` → `cache:rebuild` → `deploy:hook`, then verify), not just `drush cr`; see the `drupal-deploy-safety` skill (§2). Remote-drush forms per host: the `drupal-config-mgmt` skill.
 
-**Production Deployment Workflow**:
-
-```bash
-# 1. After making composer changes locally
-composer update drupal/module_name --with-all-dependencies
-
-# 2. Before committing, optimize for production
-composer install --no-dev -o
-
-# 3. Commit the optimized vendor files. If you stage selectively, vendor/autoload.php
-#    MUST go with vendor/composer/: the autoloader class suffix lives in vendor/autoload.php,
-#    vendor/composer/autoload_real.php and vendor/composer/autoload_static.php, and staging
-#    only some of them is a site-wide "ComposerAutoloaderInit... not found" fatal.
-#    Never commit the autoloader left behind by a later dev `composer install`.
-git add composer.json composer.lock vendor/
-git commit -m "Update module_name with production optimization"
-
-# 4. Push to production
-git push origin master
-
-# 5. Rebuild caches on the remote env (use your platform's remote-drush form):
-acli remote:drush -- cr                       # Acquia
-# terminus drush <site>.<env> -- cr           # Pantheon
-# platform drush -e <env> -- cr               # Platform.sh (Upsun: upsun drush -- cr)
-# lagoon ssh -p <project> -e <env> -C "drush cr"   # Lagoon / amazee.io
-# drush @<alias> cr                            # generic, any host with Drush aliases
-```
-
-**NEVER commit vendor/ with dev dependencies to production branches!**
 ## Developing and Contributing Contrib Modules
 
 The symlink development workflow and the drupal.org issue-fork / merge-request workflow are in [references/contributing-upstream.md](references/contributing-upstream.md). Worked update recipes (known patch, D11 fix, breaking major upgrade) are in [references/update-patterns.md](references/update-patterns.md).

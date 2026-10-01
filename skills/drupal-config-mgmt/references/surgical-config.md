@@ -122,3 +122,5 @@ The expected result is "No differences between DB and sync directory" (or only d
 For a change that is purely config (a field, a view, a settings form value), the committed YAML plus the matching `core.extension.yml` line is usually the whole deploy: the pipeline's `cim` applies it, and the config importer enables new modules before importing config entities, so a new module's config imports cleanly in the same run. No update hook is needed.
 
 Use a `hook_update_N()` only for data changes (rewriting field values, backfills, state). Update hooks run during `updatedb`, **before** `cim`, so they cannot rely on config or modules that only arrive in that deploy's import.
+
+The full deploy tail (looped `updatedb`, cache rebuilds, `config:import`, deploy hooks, and the checks afterwards) and the per-change-class deploy plan live in the `drupal-deploy-safety` skill.

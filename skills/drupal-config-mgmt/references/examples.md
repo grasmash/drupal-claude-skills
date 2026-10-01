@@ -34,7 +34,10 @@ echo "=== LOCAL: my_module.stats_hero ===" && \
 echo "=== LOCAL: my_module.myfeature ===" && \
   grep "membership_text\|button_text" config/default/my_module.myfeature.yml
 
-# 3. Manually edit files using Edit tool to match dev values
+# 3. Take dev's value one object at a time (never hand-author the YAML)
+for n in block.block.mytheme_parallaxheroblock my_module.stats_hero my_module.myfeature; do
+  terminus drush mysite.dev -- config:get "$n" --format=yaml > "config/default/$n.yml"
+done
 
 # 4. Review and commit changes
 git diff config/default/block.block.mytheme_parallaxheroblock.yml \
@@ -101,11 +104,16 @@ When you edit a config split definition:
 
 **Why this matters**: Config Split reads from active configuration when exporting, so file edits alone won't work!
 
+**Full exports here are deliberate.** config_split writes the split directory and its patch files during `cex`, so split changes are the routine case that needs a full export. Start from a clean, committed tree, then review `git status config/` and revert anything you did not intend. Everywhere else, export one object at a time ([surgical-config.md](surgical-config.md)).
+
 ### Method 1: Import the Change
 
 ```bash
-# After editing config/default/config_split.config_split.local.yml
-ddev drush config:import --partial --source=config/default
+# After editing config/default/config_split.config_split.local.yml, import ONLY that file
+# (--source=config/default would import every difference in the directory)
+mkdir -p .config-one && cp config/default/config_split.config_split.local.yml .config-one/
+ddev drush config:import --partial --source=/var/www/html/.config-one -y
+rm -rf .config-one
 
 # Or import specific config
 ddev drush config:set config_split.config_split.local complete_list []
@@ -176,6 +184,8 @@ cp config/default/search_api.server.main.yml \
    config/local/config_split.patch.search_api.server.main.yml
 
 # 2. Edit the override file with local-specific settings
+# Hand-editing a split file is an exception to "never hand-author YAML": review the
+# result after the export below regenerates it
 # Use Edit tool to modify config/local/config_split.patch.search_api.server.main.yml
 
 # 3. Update split config to reference it

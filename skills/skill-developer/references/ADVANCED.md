@@ -192,6 +192,6 @@ describe('database-verification', () => {
 
 ## Related Files
 
-- [SKILL.md](SKILL.md) - Main skill guide
+- [SKILL.md](../SKILL.md) - Main skill guide
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Current debugging guide
 - [HOOK_MECHANISMS.md](HOOK_MECHANISMS.md) - How hooks work today

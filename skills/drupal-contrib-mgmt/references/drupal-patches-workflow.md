@@ -142,7 +142,7 @@ git commit -m "Add patch for module_name"
 **Steps**:
 1. Right-click patch link → Copy link address
 2. Add to composer.json patches section
-3. Run `composer install` or `composer update drupal/audiofield --with-all-dependencies`
+3. Run `composer patches-relock`, then `composer reinstall drupal/audiofield` (a plain `composer install` does not re-patch an already-installed package)
 
 ### Method 2: Local Patch
 
@@ -606,8 +606,9 @@ cd /path/to/project
   }
 }
 
-# Step 8: Test the new patch
-composer install
+# Step 8: Relock and apply the new patch, then test
+composer patches-relock
+composer reinstall drupal/module
 drush cr
 # Test functionality
 ```
@@ -752,10 +753,7 @@ git apply --check /path/to/patch.patch
 ### After Applying
 
 ```bash
-# Clear cache
-drush cr
-
-# Run database updates if needed
+# Run database updates if needed (updatedb rebuilds caches when it finishes)
 drush updb -y
 
 # Check for errors
@@ -839,9 +837,9 @@ rm -rf .git
 **Solution**: Remove patch from composer.json
 
 ```bash
-# Edit composer.json - remove patch entry
-# Reinstall
-composer install
+# Edit composer.json - remove patch entry, then relock and reinstall
+composer patches-relock
+composer reinstall drupal/module_name
 ```
 
 ### Scenario 4: Understanding Patched vs Unpatched State
@@ -873,10 +871,10 @@ curl -s https://ftp.drupal.org/files/projects/module_name-VERSION.tar.gz | tar x
 
 1. **Apply patches incrementally** to understand dependencies:
 ```bash
-# Temporarily comment out all but first patch
-# Run: composer install
+# Temporarily remove all but the first patch from composer.json
+# Run: composer patches-relock && composer reinstall drupal/module_name
 # Check what changed
-# Add second patch, reinstall, check again
+# Add second patch, relock + reinstall, check again
 # Continue until you find the conflict
 ```
 
@@ -933,8 +931,8 @@ cat src/FailingFile.php | head -100
 
 # Step 5: Apply patches one by one
 # Remove all patches from composer.json except first
-# composer install
-# Add second patch, composer install
+# composer patches-relock && composer reinstall drupal/module_name
+# Add second patch, relock + reinstall again
 # Continue until failure occurs
 # Now you know which two patches conflict
 ```
@@ -1135,8 +1133,7 @@ composer require drupal/module_name:^2.0 --with-all-dependencies
 # 2. Find updated patch in issue queue
 # 3. Rebase patch manually if needed
 
-# Test after reapplying
-drush cr
+# Test after reapplying (updatedb rebuilds caches when it finishes)
 drush updb -y
 ```
 
@@ -1200,9 +1197,9 @@ git apply --check patch-file.patch
 # View patch contents
 cat patch-file.patch
 
-# Apply with composer
-composer install
-composer update drupal/module_name --with-all-dependencies
+# Apply with composer (after editing extra.patches)
+composer patches-relock
+composer reinstall drupal/module_name
 ```
 
 ### Common Patch Locations
