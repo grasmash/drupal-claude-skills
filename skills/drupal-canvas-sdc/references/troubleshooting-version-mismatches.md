@@ -1,6 +1,6 @@
 # Troubleshooting: Component Version Mismatches (500 Errors)
 
-Diagnosing and recovering from the "is not a prop on this version of the Component" 500 error.
+Diagnosing and recovering from the "is not a prop on this version of the Component" 500 error. `canvas:upgrade-instances` and `canvas:component-info` below are project-custom Drush commands, not shipped by Canvas; see [component-versioning.md](component-versioning.md).
 
 ### Symptom
 
@@ -32,7 +32,7 @@ ddev drush canvas:component-info js.container
 The upload command is configured via `.env` in the canvas-components project:
 - `CANVAS_SITE_URL=http://example.ddev.site`
 - `CANVAS_CLIENT_ID=canvas_cli`
-- `CANVAS_CLIENT_SECRET=canvas_cli_secret`
+- `CANVAS_CLIENT_SECRET=<your-client-secret>`
 
 #### For SDC Components (`sdc.*`)
 
@@ -43,8 +43,9 @@ ddev drush cr
 # 2. Upgrade existing instances
 ddev drush canvas:upgrade-instances sdc.mytheme.component-name -y
 
-# 3. Export updated config entity
-ddev drush cex -y
+# 3. Export only the updated config entity (use your config sync directory)
+ddev drush config:get canvas.component.sdc.mytheme.component-name --format=yaml \
+  > config/sync/canvas.component.sdc.mytheme.component-name.yml
 ```
 
 ### Diagnosis Commands

@@ -40,7 +40,7 @@ props:
 
 ## CSS Styling with BEM
 
-**Component-Scoped CSS (CRITICAL)**: NEVER scope styles to route/path body classes (e.g., `.alias--masterclasses`, `.path-some-page`). Instead, scope styles to the component's own classes (e.g., `.view-masterclasses`, `.block-views-blockmasterclasses-block-2`). The Canvas editor renders page previews in an iframe without the page's body classes, so route-scoped styles won't appear there. All styles must be componentized and portable -- they should look correct regardless of what route or context they render in.
+**Component-Scoped CSS (CRITICAL)**: NEVER scope styles to route/path body classes (e.g., `.alias--articles`, `.path-some-page`). Instead, scope styles to the component's own classes (e.g., `.view-articles`, `.block-views-blockarticles-block-2`). The Canvas editor renders page previews in an iframe without the page's body classes, so route-scoped styles won't appear there. All styles must be componentized and portable -- they should look correct regardless of what route or context they render in.
 
 SDC auto-attaches CSS when file matches component name. Use BEM for scoped styles:
 

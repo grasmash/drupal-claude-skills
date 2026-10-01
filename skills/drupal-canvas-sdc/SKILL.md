@@ -139,7 +139,7 @@ libraryOverrides:
 2. Give every prop and slot a `title:`, every required prop an `examples:` value that validates against its schema, and use `|default()` in Twig for optional props.
 3. Clear cache: `ddev drush cr`. Confirm the component is enabled at `/admin/appearance/component/status`; if it is not, read the recorded reasons ([references/registration-and-config.md](references/registration-and-config.md)).
 4. New component: export its auto-created `canvas.component.sdc.<extension>.<name>` config object in the same change.
-5. Changed props: check for and migrate outdated instances (`ddev drush canvas:upgrade-instances`), then re-export the component's config ([references/component-versioning.md](references/component-versioning.md)).
+5. Changed props: migrate outdated instances to the new `active_version`, then re-export the component's config. Canvas ships no Drush command for the migration; [references/component-versioning.md](references/component-versioning.md) describes a project-custom one.
 6. Open the Canvas editor on a page using the component before pushing.
 
 ## Critical Rules

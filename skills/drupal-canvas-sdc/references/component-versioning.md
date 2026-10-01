@@ -32,7 +32,9 @@ This is intentional - Canvas preserves backward compatibility so existing pages 
 
 **IMPORTANT**: After modifying component props, always run the upgrade command to migrate existing instances.
 
-Use the custom drush commands to upgrade existing instances:
+**Not shipped by Canvas.** `canvas:upgrade-instances` and `canvas:component-info` are project-custom Drush commands; Canvas 1.7.1 ships no Drush commands at all. You would have to write them. Such an upgrade command compares `components_component_version` in `canvas_page__components` and `canvas_page_revision__components` with each `canvas.component.*` entity's `active_version`, lists the mismatches, and rewrites the pinned version hash to the active one (it does not change stored inputs). The info command prints a component's `active_version`, all its stored versions, and how many instances are pinned to each.
+
+Example usage, assuming you have written such commands:
 
 ```bash
 # List components with outdated instances
@@ -109,8 +111,8 @@ foreach ($tables as $table) {
 ### Production Deployment Workflow
 
 For production deployments where you change component props:
-- Write a `hook_update_N()` to migrate instances (see `my_module_update_9015` for example)
-- Or run `drush canvas:upgrade-instances --all` as part of deployment scripts
+- Write a `hook_update_N()` to migrate instances
+- Or run your custom `drush canvas:upgrade-instances --all` as part of deployment scripts
 
 ### Canvas Config Entity Structure
 
@@ -149,7 +151,7 @@ ddev drush cr
 # List all SDC components
 ddev drush ev "print_r(array_keys(\Drupal::service('plugin.manager.sdc')->getDefinitions()));"
 
-# Canvas component version management (your project custom)
+# Canvas component version management (project-custom commands, not shipped by Canvas; see above)
 ddev drush canvas:upgrade-instances          # List outdated
 ddev drush canvas:upgrade-instances --all    # Migrate all
 ddev drush canvas:component-info             # Show all components
