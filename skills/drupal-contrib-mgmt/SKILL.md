@@ -228,8 +228,15 @@ Key differences in 2.x:
 3. **Run `composer patches-relock`** — adds the patch to `patches.lock.json`. WITHOUT this, step 4's `composer install` applies nothing (v2 reads the lock, not `composer.json`).
 4. Run `composer install` to apply the patch to the working tree
 5. **`git add` and commit the modified contrib file** along with `composer.json`, `patches.lock.json`, and the new `.patch` file — platforms that deploy from git (Pantheon) can't apply patches on their own, so the committed contrib file must already be in its patched form
-6. Run `./scripts/verify-patches.sh` locally to sanity-check before pushing
-7. CI will re-run the same verification on every push
+6. **Write a behavior test for the patched functionality** (see below)
+7. Run `./scripts/verify-patches.sh` locally to sanity-check before pushing
+8. CI will re-run the same verification on every push
+
+**Every patch ships a behavior test.** `verify-patches.sh` is structural: it proves the patch *lines* are present in the committed file, not that the patched code *behaves* correctly. A patch can be applied and still not fix anything (wrong hunk, upstream refactor moved the logic, a later patch undid it). The test is what makes the patch durable across module bumps:
+- **Negative case**: exercise the exact edge condition the patch fixes. For a new patch, write this test first against the **unpatched** module and watch it fail for the reported reason — otherwise you have not proven it tests the bug.
+- **Positive case**: the normal path still works (no regression).
+- Place the test in the consuming custom module's `tests/` directory and reference the `.patch` file in the test's docblock, so whoever bumps the module can find it.
+- **Never bump a patched module whose patch has no behavior test.** Write the test first, then bump, then confirm it still passes (or that the patch is now upstream and can be dropped).
 
 **When `verify-patches.sh` reports MISSING in CI**:
 - Lock-sync failure → someone skipped `composer patches-relock` (step 3). Fix: run it, commit `patches.lock.json`, push.
@@ -559,6 +566,7 @@ drush upgrade_status:analyze module_name
 - [ ] Update composer.json with new version
 - [ ] Add to drupal-lenient if needed
 - [ ] Search for and apply necessary patches
+- [ ] Confirm every existing patch on the module has a behavior test, and run it after the bump
 - [ ] Run `composer require drupal/module_name:^X.0 --with-all-dependencies`
 - [ ] Run `drush updb -y`
 - [ ] Run `drush cr`
