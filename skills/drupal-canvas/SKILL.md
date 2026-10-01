@@ -1,125 +1,54 @@
 ---
 name: drupal-canvas
-description: Drupal Canvas Code Components - a framework for building interactive, server-side-rendered components in Drupal. Covers scaffolding with @drupal-canvas/create, the Nebula starter template, component architecture, and integration with Acquia Source Site Builder.
+description: Entry point for Drupal Canvas Code Components (React/JSX). Points to the officially maintained drupal-canvas/skills suite (component definition, metadata, push, styling, data fetching, regions, page definition, content templates) and to this repo's complements for Twig SDCs and upstream contribution. Use when creating, modifying, or pushing Canvas Code Components, or when deciding which Canvas skill applies.
 ---
 
-# Drupal Canvas Code Components
+# Drupal Canvas Code Components — use the upstream suite
 
-Canvas Code Components enable interactive, server-side-rendered components in Drupal using modern JavaScript patterns with full Drupal integration.
+Canvas Code Components (React/JSX) are covered by the officially maintained
+**[drupal-canvas/skills](https://github.com/drupal-canvas/skills)** suite
+(MIT licensed). This repo does not mirror it: a local copy goes stale as
+upstream evolves, and stale component rules are worse than none. Install the
+real thing:
+
+```bash
+npx skills add drupal-canvas/skills
+```
+
+To scaffold a codebase for Code Components, upstream publishes a CLI:
+`npx @drupal-canvas/create <project>`.
 
 ## When This Skill Activates
 
-Activates when working with:
-- Canvas Code Components (creation, configuration, styling)
-- `@drupal-canvas/create` scaffolding tool
-- Nebula starter template
-- Acquia Source Site Builder integration
-- Component-based Drupal architecture
+- Building, editing, or pushing a Canvas Code Component
+- Choosing between a Code Component and a Twig SDC
+- Looking for Canvas guidance and unsure which skill holds it
 
----
+## Upstream skills
 
-## Quick Start
+The suite ships these skills (check the repo for the current list):
 
-### Scaffold a New Canvas Project
+- `canvas-component-composability`
+- `canvas-component-definition`
+- `canvas-component-metadata`
+- `canvas-component-push`
+- `canvas-component-utils`
+- `canvas-content-templates`
+- `canvas-data-fetching`
+- `canvas-design-decomposition`
+- `canvas-headless`
+- `canvas-navigation-components`
+- `canvas-page-definition`
+- `canvas-regions`
+- `canvas-styling-conventions`
+- `canvas-workbench`
 
-```bash
-npx @drupal-canvas/create my-project
-```
+## Complements in this repo
 
-This creates a complete Drupal project with Canvas Code Components pre-configured, including:
-- Drupal core with Canvas module
-- Example components
-- Development tooling
-- Nebula starter template
+The upstream suite is React/JSX only. For everything else:
 
-### Install Canvas Skills for Detailed Guidance
-
-For comprehensive component development guidance (7 detailed skills covering definition, metadata, composability, styling, utilities, data fetching, and upload workflows):
-
-```bash
-npx skills add drupal-canvas/skills
-```
-
----
-
-## What Are Code Components?
-
-Code Components are Drupal's approach to interactive, reusable UI components that:
-
-- **Server-side rendered** — Full SSR with hydration, not client-only
-- **Drupal-integrated** — Access entities, fields, views, and Drupal APIs
-- **Composable** — Nest components, pass props, emit events
-- **Styled** — Scoped CSS with design token support
-- **Type-safe** — Full TypeScript support with prop validation
-
-### Component Structure
-
-```
-my-component/
-├── my-component.component.tsx   # Component logic
-├── my-component.metadata.json   # Drupal integration metadata
-├── my-component.styles.css      # Scoped styles
-└── my-component.utils.ts        # Optional utilities
-```
-
-### Example Component
-
-```tsx
-import { type ComponentProps } from '@drupal-canvas/sdk';
-
-export default function MyComponent({ title, items }: ComponentProps) {
-  return (
-    <div className="my-component">
-      <h2>{title}</h2>
-      <ul>
-        {items.map((item, i) => (
-          <li key={i}>{item.label}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-```
-
----
-
-## Ecosystem
-
-### Nebula Starter Template
-The recommended starting point for new Canvas projects. Includes:
-- Pre-configured Drupal with Canvas module
-- Example components demonstrating all patterns
-- DDEV local development setup
-- Deployment configuration
-
-### Acquia Source Site Builder
-Canvas components integrate with Acquia's Source Site Builder for:
-- Visual component placement and configuration
-- Content editor-friendly component management
-- Design system integration
-- Multi-site component sharing
-
-### Canvas Skills Collection
-Install the full Canvas skills collection for detailed development guidance:
-
-```bash
-npx skills add drupal-canvas/skills
-```
-
-Covers 7 topics:
-1. **Component Definition** — Creating and registering components
-2. **Metadata** — Drupal integration via metadata.json
-3. **Composability** — Nesting, props, events, slots
-4. **Styling** — Scoped CSS, design tokens, theming
-5. **Utilities** — Helper functions and shared logic
-6. **Data Fetching** — Entity queries, views integration, API calls
-7. **Upload** — Deploying components to Drupal
-
----
-
-## Resources
-
-- **Scaffolding**: `npx @drupal-canvas/create`
-- **Canvas Skills**: `npx skills add drupal-canvas/skills`
-- **Drupal Canvas Module**: Available via Composer
-- **Nebula Template**: Included with `@drupal-canvas/create`
+- **`drupal-canvas-sdc`** — Twig Single Directory Components in themes and
+  modules: `component.yml` schemas, Canvas registration rules, component
+  config entities, versioning, and deploy pitfalls.
+- **`canvas-contribution`** — contributing Canvas features and fixes back to
+  drupal.org (issue forks, merge requests, composer patches).
