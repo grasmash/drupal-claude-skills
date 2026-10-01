@@ -141,6 +141,32 @@ Backend tracing is provided by the `raven` module (Drupal Sentry SDK). Config in
 - **Release**: set in `settings.php` from `SENTRY_RELEASE` env var (e.g. a CI-set git SHA for suspect-commit linking) or an equivalent per-deploy identifier from your hosting platform. Blank `release` = no deploy correlation.
 - **Profiling (function flamegraphs) needs the Excimer PECL extension** — `pecl install excimer`. Some managed hosting platforms (e.g. Pantheon) can't install custom PECL extensions, so Sentry Profiling is unavailable there (the raven form disables the profiles field when `!extension_loaded('excimer')`). Tracing **spans** (DB/Twig/render breakdown per transaction) are the substitute on those platforms; check whether your host offers a native deep-profiling APM as an alternative.
 
+## What Sentry holds, and what it cannot show
+
+Use Sentry before asking someone with server access for watchdog output or log pulls — errors, watchdog entries, per-route transaction volume and p50/p95, DB/Twig spans, breadcrumbs, trace ids and release tagging are usually all there. But state these limits in any verdict built on it.
+
+**Raven forwards only the log levels your site enables.** Watchdog/logger entries become Sentry events only at the levels enabled in `raven.settings:log_levels` (the module installs with every level off; sites commonly enable error and above). Check your config before reading silence: if only error+ is enabled, "no Sentry events" means nothing was logged at error+, not that nothing was logged. Raven can also send log records to Sentry Logs (structured logs) via `enable_logs` plus its own `logs_log_levels` mapping (both off in raven 7.4.0's install config). Either way `log_levels` is site-wide with no per-channel level, so if one non-error outcome must be searchable in prod, capture it through the Sentry SDK directly with explicit tags rather than inflating its log severity.
+
+### Dataset facts (verify on your org — these were measured, not documented)
+
+- **Where transactions live:** the legacy Discover `transactions` dataset can return zero rows; query `dataset=spans` with `is_transaction:true`.
+- **Counts:** in `spans`, `count()` is already extrapolated per span by `1/client_sample_rate`; `count_sample()` is the stored row count.
+- **`has:<field>` lies about population.** In `errors`, `has:<field>` matches rows whose value is the empty string, and an unknown field name returns `''` on every row with HTTP 200. Only **non-empty values** prove a field is populated.
+
+**Triage discipline:** before answering "Sentry doesn't have X" or building a table on a field, check that the field has non-empty values in the dataset and window you queried, that the environment filter matches real events (e.g. `prod` vs `production`), and that the window itself has data. If any check fails, refuse to answer from that query and say which dataset *does* carry the field — an empty column is not evidence. Any wrapper script you build around the API should enforce this and print the dataset, window, project, query and sample-rate caveat with every result.
+
+### Blind spots
+
+1. **Sampling.** Transactions are sampled, so counts are extrapolations and rare slow requests are mostly missing. When per-request client sample rates are mixed, use Sentry's weighted `count()` — a fixed multiplier (×50 for "2%") over- or under-counts.
+2. **Survivorship.** A request that hangs until the gateway/edge times out never completes, so it never emits a transaction. Worker exhaustion shows as transaction volume **collapsing**, never as a spike. Treat the volume curve as a floor.
+3. **Client attribution on server transactions** (as measured on a Drupal + raven backend):
+   - **User agent:** parsed `browser.name`, `browser` (name + version) and `device.family` are populated on server transactions; `user_agent.original` was empty in both spans and errors. The raw `User-Agent` exists only as a request header on error event detail.
+   - **`os.name` is the app server** ("Linux") on server transactions; it describes the client only on browser-SDK spans. Likewise `geo.*` / `user.geo` describe the app server's location, not the client's.
+   - **Client IP:** `user.ip` is empty everywhere when `raven.settings:capture_user_ip` is `false`. The client address may then exist only in CDN/proxy client-IP request headers on error event detail — and those can be client-supplied and passed straight through by some platforms, so trust them for ordinary bots, never for a deliberate scraper.
+   - **HTTP status** was not queryable on server transactions (`http.status_code` was null there); use `span.status` (`ok`, `permission_denied`, `unavailable`, …). Status codes that do appear in `spans` come from browser-SDK fetch/resource spans.
+   - **`user.id`** was "0" on ~100% of server transactions (cause unproven); error events carry real user ids.
+   - Attributing traffic that raised no error still needs the web server access log.
+
 ## Related Skills
 
 - `drupal-performance` - Performance optimization patterns

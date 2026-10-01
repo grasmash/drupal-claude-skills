@@ -147,6 +147,31 @@ class MyMatrixTest extends SomeTestBase {
 - **Bound meta-refresh recursion.** DTT's vendor default for `maximumMetaRefreshCount` is `NULL` (unbounded) — a page carrying a `<meta http-equiv="Refresh">` loop (e.g. big_pipe's no-JS detection paired with a redirect target that keeps serving the tag) hangs the run. Set it to a small number (e.g. 3) in a shared project base class.
 - **Guard `tearDown()` when `setUp()` skips.** If your ExistingSite base skips in `setUp()` when `DTT_BASE_URL` is unset (`$this->markTestSkipped(...)` BEFORE `parent::setUp()`), pair it with a `tearDown()` guard — `if (!\Drupal::hasContainer()) { return; }` before `parent::tearDown()`. PHPUnit calls `tearDown()` in a `finally` block even after a `setUp()`-time skip, and DTT's own `tearDown()` unconditionally touches `\Drupal::database()`, which fatals with `ContainerNotInitializedException` if `setupDrupal()` never ran. Without the guard, "Skipped: 9" silently becomes "Skipped: 9, Errors: 9".
 - **Anonymous CSRF tokens may not validate across requests.** A route with `_csrf_token: TRUE` generates its token from the current session — and on sites that don't persist sessions for pure-anonymous requests (no `Set-Cookie` on anonymous GET), a token embedded in one anonymous response is not guaranteed to validate on a follow-up anonymous POST. Fix in tests: `$this->drupalLogin($this->createUser())` before exercising a `_csrf_token: TRUE` flow — the login exists solely to establish a stable, persisted session. Then exercise the *real* form (`$form->submit()` on the rendered page), not a hand-built URL.
+- **Freshness tests mutate through a real HTTP request.** An in-process `$entity->save()` inside the phpunit process has been observed not to bust a response warmed over HTTP, so the freshness assertion fails even though the product is correct across a real request boundary. The mechanism is not established (core runs deferred tag invalidations in-process on root transaction commit, so it is not simply "callbacks never run"; and a `cachetags` table exists only with the database checksum backend). Route the mutation through the app's actual write path (e.g. JSON:API `POST`/`PATCH` over HTTP with the session cookie + `X-CSRF-Token`), then re-fetch the cached surface.
+
+## ExistingSite: no rollback, shared database, long-lived process
+
+`ExistingSiteBase` never wraps a test in a transaction, and a whole suite (or CI shard) runs in one PHP process against one real database. Every side effect outlives the test.
+
+### Fixture hygiene — published fixtures leak into real listings
+A test that saves a **published** node leaves user-visible content in real feeds and listings (empty or broken items at the top of a feed, phantom cards) that later arrive as bug reports.
+- Create fixtures **unpublished** (`status => 0`) wherever the logic under test allows it.
+- Otherwise call `$this->markEntityForCleanup($entity)` **immediately** after `save()` — not at the end of the method, where an early failure skips it.
+- After a test or agent swarm, sweep leftovers with a dry-run-by-default cleanup command whose match rules are conservative (title pattern AND recent creation AND bundle).
+
+### `drupalLogin()` has persistent side effects
+A real `drupalLogin()` HTTP flow runs every login subscriber, and their writes are not rolled back. Example (read against `tfa` 2.0.0-alpha5): when TFA is enabled for an account that has **not set up TFA** (`TfaLoginContext::isReady()` is false) but may still log in without it, each successful login records a skip (`hasSkipped()` increments the persisted `validation_skipped` count in user data). Exhaust the allowance and a *different*, unrelated test that logs in the same account starts failing.
+- For in-process code that needs another identity, use `\Drupal::service('account_switcher')->switchTo($account)` / `switchBack()` (in a `finally`), not a raw `current_user->setAccount()`. tfa decorates the account switcher to set a bypass flag, so its user-set subscriber lets the switch through. A raw `setAccount()` to an authenticated account gets no bypass: depending on the account's TFA state it records a skip or throws `TfaAccessDenied`.
+- When picking an existing account to `drupalLogin()` as, exclude accounts in TFA-required roles that have not set up TFA, or snapshot and restore `validation_skipped` around the login in your base class.
+
+### Never write shared config singletons
+A test that writes a global config object in `setUp()` and restores it in `tearDown()` leaves the value stuck if the process dies in between (kill, timeout, OOM). One stuck honeypot `time_limit` made the honeypot reject fast form submits site-wide — including the login form — so `drupalLogin()` broke in every later shard (~700 failures). Use a `ConfigFactoryOverrideInterface` scoped to the test's own container (DTT boots a fresh one per method), so nothing persists regardless of how the process ends. A `register_shutdown_function()` restore is not a fix: it fires late enough in shutdown that config-save subscribers can throw on a torn-down request.
+
+### Memory growth: process-lifetime statics pin dead kernels
+DTT boots a fresh `DrupalKernel` per test method and never tears the old one down. Anything rooted in a **process-lifetime static** keeps the whole dead container and entity-cache graph reachable, so memory grows linearly with test count — one shard grew from ~150MB to ~7.8GB and was SIGKILLed (exit 137), which presents as a *truncated shard*, not a memory bug. The main roots: `drupal_static()`, Symfony `MimeTypes::$default` (Drupal re-registers a container-wrapping guesser into it on every boot), and the `drupal_register_shutdown_function()` list (appended to per boot, consumed only at real process exit). Separately, "load every active user"-style fixtures can add ~1GB on their own — never load a whole table as a fixture.
+- Release them in a base-class `#[After]` hook (runs after the entire `tearDown()` chain): `drupal_static_reset()`, reset the MIME guesser default, clear the shutdown-function list, then `gc_collect_cycles()` + `gc_mem_caches()`.
+- Log memory per test to a CSV behind an env var, so growth is re-measurable when it regresses.
+- **Do NOT add `\Drupal::unsetContainer()` to that hook.** Any test that calls `Database::startLog()` (e.g. query-budget tests) leaves statement events enabled on the process-static DB connection; DTT's next `setupDrupal()` runs a `cache_container` query inside `DrupalKernel::boot()` *before* `\Drupal::setContainer()`, so with the container unset that query throws ("event dispatcher service is not available") and every later test dies at boot. A local slice without a `startLog()` test will "prove" it green. If you must release the container, close the DB connections first and keep it opt-in.
 
 ## The anonymous-403 permission trap
 
@@ -270,6 +295,15 @@ When CI fails on test errors, don't iterate by pushing commits and re-running th
 - `drupalLogin()` can intermittently fail at the post-login page-render check (login succeeds; the assertion that the page rendered as logged-in fails) when a module's cache context depends on session metadata that the test session bag doesn't provide (seen with the `masquerade` module). It's intermittent (cache-state dependent) and unrelated to whatever you're testing.
 - **Fix:** if the test asserts controller/service OUTPUT (not the HTTP auth layer), don't use `drupalLogin`. Invoke the controller directly under an `AccountSwitcher`: `\Drupal::service('account_switcher')->switchTo($user)` → call the method → `switchBack()` in a `finally`. Cover the access gate separately at the route-definition level (see "The anonymous-403 permission trap").
 
+### Mass `drupalLogin()` failure = environment, not code
+If hundreds of tests across modules that share nothing fail at login, check the environment before debugging code:
+- **Base-URL / host mismatch.** If `SIMPLETEST_BASE_URL`/`DTT_BASE_URL` name a different host than the one actually serving the site, the session-cookie name differs and *every* login fails with the same `Failed asserting that false is true`. Export both from the environment's real primary URL.
+- **Missing private keys** (e.g. key files under `private://keys/` that auth modules need) — hundreds of tests "did not run".
+- **A leaked shared config singleton** (see above).
+
+### Arrow functions in mocks capture by value
+`fn() => $cursor` freezes `$cursor` at definition time and never sees a later change. In a mocked iterator (`valid()`/`current()`/`next()`) this makes `valid()` return TRUE forever — an infinite loop — or trips `expects($this->once())` in a way that reads as a production double-call bug. Use a real closure: `function () use (&$cursor) { ... }`.
+
 ### Debugging test failures
 ```bash
 # Recent errors during a test run
@@ -286,3 +320,4 @@ ddev drush cr
 
 - Section-divider comments (`// ---`) before a docblock violate both `CommentEmptyLine.SpacingAfter` and `FunctionSpacing.Before`. Don't use them in test files.
 - Run `vendor/bin/phpcbf <file>` to auto-fix before recommitting.
+- **Grade a phpcs gate by its exit code, never by grepping its output.** phpcs output can be colorized, and `grep -c '| ERROR'` over ANSI-colored text counts 0 regardless of the real result — a gate that always passes. If warnings shouldn't fail the gate, set `ignore_warnings_on_exit=1` and still read the exit code (or parse `--report=json`, failing closed if the parser is missing).

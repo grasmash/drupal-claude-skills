@@ -207,6 +207,58 @@ $response->getCacheableMetadata()
   ->addCacheTags($entity->getCacheTags());
 ```
 
+## Response-Shape Contracts (installed clients)
+
+When an endpoint is consumed by an installed mobile/desktop app, the fleet is
+**never on one version** — often the largest share runs an old build. "The app
+handles it" describes the build on your phone, not the response you changed.
+
+- **Adding keys is safe.** Removing, renaming, or nulling a key is a contract
+  break for any build that reads it.
+- **A new branch of an existing handler must carry every key the other
+  branches carry.** The classic break: a new early-return branch (e.g. "nothing
+  available") omits a string field, and an old build that calls a method on it
+  (`value.replace(...)`) crashes outright.
+- **Record what each supported build reads.** Per route, list the fields each
+  still-supported client version reads, and mark the ones it will crash without
+  (it calls a method on the value). Derive it from each version's shipping
+  source, not the app repo tip.
+- **Test every response branch** of the handler against that record — drive
+  each branch through the real controller and assert the required fields are
+  present and non-null. A route with required reads but no driven branch should
+  fail the test, not pass silently.
+- To retire a field, keep it until the builds that
+  require it fall out of support, or record the break explicitly as an accepted gap.
+
+## Webhook Handlers
+
+Providers retry and can deliver the same event concurrently, and another code
+path (e.g. a post-purchase redirect) may race the webhook for the same object.
+
+```php
+$lock = \Drupal::lock();
+$lock_name = 'my_module_subscription:' . $remote_id;
+if (!$lock->acquire($lock_name, 30)) {
+  // Another process is handling this object; log and exit.
+  return;
+}
+try {
+  // Idempotent upsert: load by remote id, update if found, create if not.
+}
+finally {
+  $lock->release($lock_name);
+}
+```
+
+- **Lock per object**, not globally, keyed by type + remote id.
+- **Upsert idempotently** — a redelivered event updates the existing record and
+  treats "already processed" as success, never creates a duplicate.
+- **User auto-creation must be race-safe:** wrap `save()` in try/catch; on
+  failure, immediately load the user by email and return the existing account
+  instead of failing.
+- Log every attempt; catch and log exceptions rather than letting them escape
+  (an escaped exception typically makes the provider retry).
+
 ## Debugging
 
 ### Check Watchdog Logs

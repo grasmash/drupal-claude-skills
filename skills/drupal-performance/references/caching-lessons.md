@@ -60,6 +60,19 @@ act on. Removing a per-*user* cache context (to collapse Dynamic Page Cache
 cardinality) is NOT the same as adding a TTL — it keeps the freshness tags,
 so content still busts on write.
 
+**"The real path" means a real HTTP request, not `$entity->save()`.** In an
+ExistingSite (DTT) test, an in-process save inside the phpunit process has
+been observed not to bust a response warmed over HTTP: the freshness test
+fails while the product, exercised across a real request boundary, is
+correct — and you will chase cache metadata that was right all along. The
+mechanism is not established: core defers tag invalidations made inside a
+transaction to a post-transaction callback and runs it in-process on root
+commit, so "callbacks never run" is not the explanation. (If you inspect
+the `cachetags` table while debugging, note it exists only with the
+database cache-tag checksum backend.) Mutate over the app's actual write
+path (e.g. JSON:API `POST`/`PATCH` with the session cookie +
+`X-CSRF-Token`), then re-fetch the cached surface over HTTP.
+
 ## 3. Code that feeds baked config must be re-materialized AND tested as the deployed artifact
 
 Some PHP computes values that Drupal **freezes into exported config at
