@@ -43,11 +43,13 @@ After restarting a crashed Docker engine (see "Docker Engine Wedge" in SKILL.md)
   docker ps -aq --filter name=ddev | xargs -r docker rm -f
   ```
 
+  This removes **every** DDEV container on the machine, including `ddev-router` and other projects' containers, not just this project's. Use it only when you mean to reset all of DDEV (`ddev start` recreates them; database volumes survive). To limit it to one project, filter on `name=ddev-<project>-`.
+
 - **The first cold drush is slow.** The first `drush` after a real engine restart can take around two minutes. A health probe or watchdog with a short timeout reads that as a failure and triggers recovery again, forever. Warm drush once (`ddev drush core:status`) before trusting any health output or starting test suites.
 
 ## Trimming the Mutagen payload
 
-With `performance_mode: mutagen`, everything under the project root syncs into the container. Large directories the container never uses (for example `node_modules` belonging to serverless functions or sibling non-Drupal projects in the repo) slow the initial sync and every rescan. Trimming them took one project from about 620K synced files to about 268K, with an initial sync of under two minutes.
+With `performance_mode: mutagen`, everything under the project root syncs into the container. Large directories the container never uses (for example `node_modules` belonging to serverless functions or sibling non-Drupal projects in the repo) slow the initial sync and every rescan. Trimming them roughly halved the synced file count in one measured project.
 
 Customize `.ddev/mutagen/mutagen.yml`:
 
@@ -77,6 +79,10 @@ Ignored paths do not exist inside the container. Any tool you run in the contain
 ```bash
 docker run -d --rm --name kernel-db -p 3307:3306 \
   -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=kernel mariadb:10.11
+
+# Wait until the server accepts TCP connections. The entrypoint first runs a
+# temporary init server without networking, so a running container is not yet ready.
+until docker exec kernel-db healthcheck.sh --connect; do sleep 1; done
 
 SIMPLETEST_DB='mysql://root:root@127.0.0.1:3307/kernel' \
   vendor/bin/phpunit -c phpunit.xml web/modules/custom/my_module/tests/src/Kernel
