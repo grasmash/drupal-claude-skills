@@ -657,7 +657,11 @@ composer update drupal/module_name --with-all-dependencies
 # 2. Before committing, optimize for production
 composer install --no-dev -o
 
-# 3. Commit the optimized vendor files
+# 3. Commit the optimized vendor files. If you stage selectively, vendor/autoload.php
+#    MUST go with vendor/composer/: the autoloader class suffix lives in vendor/autoload.php,
+#    vendor/composer/autoload_real.php and vendor/composer/autoload_static.php, and staging
+#    only some of them is a site-wide "ComposerAutoloaderInit... not found" fatal.
+#    Never commit the autoloader left behind by a later dev `composer install`.
 git add composer.json composer.lock vendor/
 git commit -m "Update module_name with production optimization"
 
