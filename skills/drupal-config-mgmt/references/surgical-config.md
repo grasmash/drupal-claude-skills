@@ -41,12 +41,20 @@ ddev drush config:status
 
 Never hand-author the YAML. Make the change through the UI, code that saves the config entity, or `config:set` for simple config, then export that one object with `config:get` and commit it.
 
-To apply a single file in the other direction, use a partial import from a directory that holds only that file:
+To apply a single file in the other direction, use a partial import from a directory that holds only that file. Under DDEV, drush runs inside the container, which cannot see the host's `/tmp`. Create the directory inside the project root (mounted at `/var/www/html` in the container), pass the absolute container path, and delete it afterwards so it never reaches git:
+
+```bash
+mkdir -p .config-one && cp config/<dir>/<name>.yml .config-one/
+ddev drush config:import --partial --source=/var/www/html/.config-one --no   # preview
+ddev drush config:import --partial --source=/var/www/html/.config-one -y
+rm -rf .config-one
+```
+
+Without DDEV, plain `drush` on the host can use any directory, such as one under `/tmp`:
 
 ```bash
 mkdir -p /tmp/one && cp config/<dir>/<name>.yml /tmp/one/
-ddev drush config:import --partial --source=/tmp/one --no   # preview
-ddev drush config:import --partial --source=/tmp/one -y
+drush config:import --partial --source=/tmp/one --no
 ```
 
 ## The core.extension.yml exception
