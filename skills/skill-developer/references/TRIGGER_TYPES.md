@@ -300,6 +300,6 @@ EOF
 ---
 
 **Related Files:**
-- [SKILL.md](SKILL.md) - Main skill guide
+- [SKILL.md](../SKILL.md) - Main skill guide
 - [SKILL_RULES_REFERENCE.md](SKILL_RULES_REFERENCE.md) - Complete skill-rules.json schema
 - [PATTERNS_LIBRARY.md](PATTERNS_LIBRARY.md) - Ready-to-use pattern library
