@@ -160,9 +160,9 @@ ddev drush config-split:import {split-name}
 ddev drush csim {split-name}
 ```
 
-**Import only base config (ignore splits)**:
+**Import only base config (ignore splits)**: Drush 13's `config:import` has no option for this (`--skip-modules` was Drush 8). Deactivate the split instead, then import. A `--partial` import also skips config transformation, so splits are not applied to it.
 ```bash
-ddev drush config:import --skip-modules=config_split
+ddev drush config-split:deactivate {split-name}
 ```
 
 ### Activate/Deactivate Splits
@@ -378,13 +378,10 @@ See [config-split-deep-dive.md](references/config-split-deep-dive.md) for comple
 
 Common issues:
 - **Dependencies missing**: Install required modules first
-- **UUID mismatch**: Use `--partial` flag
-- **Locked config**: Some config (like system.site) has immutable values
+- **Site UUID mismatch** ("Site UUID in source storage does not match the target storage"): the database was installed separately from the exported config. Install from config with `drush site:install --existing-config`, or set `system.site:uuid` to the exported value with `drush config:set system.site uuid <uuid>`
+- **Config entity UUID differs**: not an error, but the import deletes and recreates that entity (for a field storage, its data goes with it); see the `drupal-config-reconcile` skill
 
-```bash
-# Skip specific config during import
-ddev drush config:import --skip-config=system.site
-```
+Drush 13's `config:import` has no `--skip-config` option. To keep one object out of an import, use the `config_ignore` module or a single-file partial import (above).
 
 ## Related Commands
 
