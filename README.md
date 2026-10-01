@@ -85,6 +85,7 @@ Then add the agent workflow guide from [AGENTS.md](AGENTS.md) to your project's 
 | **[ivangrynenko-cursorrules-drupal](skills/ivangrynenko-cursorrules-drupal/)** | OWASP Top 10 security patterns from [Ivan Grynenko](https://github.com/ivangrynenko/cursorrules) — auth, access control, injection prevention, crypto |
 | **[drupal-simple-oauth](skills/drupal-simple-oauth/)** | OAuth2 with simple_oauth — TokenAuthUser permissions, scope/role matching, field_permissions, CSRF bypass, debugging |
 | **[drupal-search-api](skills/drupal-search-api/)** | Search API — index configuration, boost processors, custom processors, config management, reindexing |
+| **[drupal-vite-theme](skills/drupal-vite-theme/)** | Fast custom themes on Vite + Tailwind v4 + SDC — the drupal/vite dev-server probe cold-render trap, content-hashed dist vs `version:` pins, anti-monolith bundling, Tailwind v4 preflight/`@theme` pitfalls, dist drift |
 | **[skill-developer](skills/skill-developer/)** | Meta-skill for creating new skills — agentskills.io spec, frontmatter schema, progressive disclosure, 500-line rule |
 
 **Design QA**
