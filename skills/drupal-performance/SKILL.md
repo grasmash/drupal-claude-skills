@@ -266,6 +266,24 @@ bubbles up and makes the whole page per-user (see `references/caching-lessons.md
 (`my_module:custom_data`, `node_list:article`) invalidated via
 `\Drupal::service('cache_tags.invalidator')->invalidateTags([...])`.
 
+## Frozen asset URLs (browser cache)
+
+A JS/CSS fix that "works locally but not in prod", "works in incognito but
+not normally", or "keeps regressing" is often a **frozen asset URL**, not the
+code. A library that pins `version:` in `*.libraries.yml` is served as
+`?v=<that version>` forever; a production `drush cr` cannot bust browser
+caches for it, because the URL never changes.
+
+- **Diagnose:** fetch the prod page and read the asset's query string,
+  e.g. `curl -s https://<site>/<page> | grep -o '<asset>.js?[^"]*'`. If the
+  server already serves the fixed file, the stale copy is client-side.
+- **Fix:** drop the `version:` key so the URL carries Drupal's
+  cache-busting query string (which changes on cache rebuild), or ship
+  content-hashed filenames from a build step so a changed asset always gets
+  a new URL. Then rebuild caches on prod after deploy.
+- **Guard:** a test that asserts the library definitions you own carry no
+  pinned `version:`, so the pin can't come back.
+
 ## Database Query Optimization
 
 - **Use EntityQuery** over hand-written SQL for entity data (access
