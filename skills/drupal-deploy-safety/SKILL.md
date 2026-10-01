@@ -200,18 +200,35 @@ APIs just render blank. Users notice before monitoring does.
 **Guard: snapshot in the same hook, before calling `addColumn()`**, for any
 field that has data:
 
+Take table names from the table mapping: core hashes names over 48
+characters, so a hard-coded `<entity>__<field>` can miss and snapshot nothing.
+Fail closed **before** `addColumn()`. `CREATE TABLE … LIKE` is MySQL/MariaDB
+(PostgreSQL: `CREATE TABLE x (LIKE y INCLUDING ALL)`; SQLite has no LIKE form).
+
 ```php
 function my_module_update_10001(): void {
   $db = \Drupal::database();
-  $tables = [
-    'node__field_example' => '_bak_10001_data',
-    'node_revision__field_example' => '_bak_10001_rev',
-  ];
-  foreach ($tables as $table => $backup) {
-    if ($db->schema()->tableExists($table) && !$db->schema()->tableExists($backup)) {
-      // Two statements, not CREATE TABLE ... AS SELECT (see caveats).
+  $definition = \Drupal::service('entity.last_installed_schema.repository')
+    ->getLastInstalledFieldStorageDefinitions('node')['field_example'];
+  /** @var \Drupal\Core\Entity\Sql\DefaultTableMapping $mapping */
+  $mapping = \Drupal::entityTypeManager()->getStorage('node')->getTableMapping();
+  $data = $mapping->getDedicatedDataTableName($definition);
+  $revision = $mapping->getDedicatedRevisionTableName($definition);
+  if (!$db->schema()->tableExists($data)) {
+    throw new \RuntimeException("Snapshot aborted: $data does not exist.");
+  }
+  $tables = ['_bak_10001_data' => $data];
+  if ($db->schema()->tableExists($revision)) {
+    $tables['_bak_10001_rev'] = $revision;
+  }
+  foreach ($tables as $backup => $table) {
+    if (!$db->schema()->tableExists($backup)) {
       $db->query("CREATE TABLE {{$backup}} LIKE {{$table}}");
       $db->query("INSERT INTO {{$backup}} SELECT * FROM {{$table}}");
+    }
+    $count = fn(string $t) => (int) $db->select($t)->countQuery()->execute()->fetchField();
+    if ($count($backup) !== $count($table)) {
+      throw new \RuntimeException("Snapshot of $table does not match; not calling addColumn().");
     }
   }
   \Drupal::service('custom_field.update_manager')
@@ -219,21 +236,13 @@ function my_module_update_10001(): void {
 }
 ```
 
-Caveats (MySQL/MariaDB):
-
-- `CREATE TABLE … AS SELECT` is rejected when `enforce_gtid_consistency` is on
-  before MySQL 8.0.21, which is common on managed and replicated databases.
-  `CREATE TABLE … LIKE` followed by `INSERT … SELECT` avoids that.
-- Identifiers are capped at 64 characters, and that limit includes any
-  database table prefix. `_backup_` + a long revision table name + a suffix
-  goes over it easily, so use short fixed backup names as above.
-
-Drop the backup tables in a later update, once you've confirmed the row
-counts match. (Check the service id and signature against your installed
-version.) Don't try to recreate `addColumn()`'s schema changes by hand
-without the truncate. The field-storage update path enforces the has-data
-guard and the related installed-definition bookkeeping, so a partial copy
-throws or leaves the installed schema inconsistent.
+Caveats: `CREATE TABLE … AS SELECT` is rejected under
+`enforce_gtid_consistency` before MySQL 8.0.21 (hence the two statements), and
+identifiers are capped at 64 characters, including any table prefix (hence the
+short fixed backup names). Drop the backups in a later update. Check the
+service id and signature against your installed version. Don't recreate
+`addColumn()`'s schema changes by hand without the truncate: the field-storage
+update path enforces the has-data guard and installed-definition bookkeeping.
 
 Also rehearse the **interrupted** case on a copy of production data. A
 rehearsal where `updb` survives will pass; data is only lost when the run is
@@ -259,8 +268,10 @@ an older backup or re-run anything. Each item's `data` column is a PHP-serialize
 Unserialize it (with Drupal bootstrapped, since the callable references the
 module's service) and you have the rows as they were just before the
 truncate, which is newer than any pre-deploy backup. Re-insert them into the
-named table with an explicit column list. Rows written after the wipe win;
-skip duplicates on the primary key. Do it before the 10-day garbage
+named table with an explicit column list. Rows written after the wipe win:
+skip **every `entity_id` (data) / `revision_id` (revision) that already has
+any rows**, never per primary key (`entity_id, deleted, delta, langcode`),
+or an entity re-saved with fewer deltas silently mixes old and new values. Do it before the 10-day garbage
 collection above, or pause cron until you're done.
 
 ## 5. Update hooks that write a shared external store re-fire
