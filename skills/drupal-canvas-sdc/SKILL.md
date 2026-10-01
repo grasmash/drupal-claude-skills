@@ -1,32 +1,6 @@
 ---
-description: Drupal Canvas SDC (Single Directory Components) with Twig templates. Use when creating, modifying, or troubleshooting Twig-based Canvas components in themes/modules, component.yml schemas, Canvas preview issues, or page builder functionality. For React/JSX Code Components, see drupal-canvas-code-components skill. (project)
-globs:
-  - "**/components/**/*.component.yml"
-  - "**/components/**/*.twig"
-  - "**/components/**/README.md"
-  - "docroot/themes/custom/*/components/**/*"
-  - "docroot/modules/custom/*/components/**/*"
-triggers:
-  - canvas sdc
-  - sdc
-  - single directory component
-  - component.yml
-  - twig component
-  - twig template
-  - component library
-  - props and slots
-  - component version
-  - canvas versioning
-  - outdated instances
-  - upgrade instances
-  - active_version
-  - canvas dev mode
-  - canvas vite
-  - canvas audit
-  - component audit
-  - canvas migration
-  - canvas api
-alwaysApply: false
+name: drupal-canvas-sdc
+description: Drupal Canvas SDC (Single Directory Components) with Twig templates. Use when creating, modifying, or troubleshooting Twig-based Canvas components in themes/modules, component.yml schemas, Canvas registration (props need title, required props need examples), canvas.component config entities, component versioning and outdated instances, config drift after a Canvas upgrade, Canvas preview issues, or page builder functionality. For React/JSX Code Components, see the upstream drupal-canvas/skills suite.
 ---
 
 # Drupal Canvas SDC Components (Twig)
@@ -130,7 +104,7 @@ libraryOverrides:
     - core/once
 ```
 
-**CRITICAL**: The `examples` key is **required for Canvas** to display helpful placeholders.
+**Registration requirements:** `title:` on every prop and slot, and `examples:` on every required prop, are Canvas registration requirements, not cosmetic. Canvas checks them on cache rebuild; an SDC that fails is disabled in Canvas (it cannot be placed in the editor) and the reasons are recorded. The first example must also validate against the prop schema, since Canvas uses it as the default value. There are more rules; see [references/registration-and-config.md](references/registration-and-config.md) for the full Canvas 1.7.1 checklist, how to read the recorded reasons, and an unexplained production 5xx that was seen alongside missing prop titles.
 
 ## Prop Types and Canvas Widgets
 
@@ -590,7 +564,7 @@ export const Featured = {
 
 | Module | Status | Environment | When to Use |
 |--------|--------|-------------|-------------|
-| `canvas_dev_mode` | **Keep enabled locally** | Local only, NEVER production | Always during development. Unlocks experimental APIs and extensions toolbar. |
+| `canvas_dev_mode` | **Only when you need it** | Local only, NEVER production | When you need the experimental APIs or extensions toolbar. Production runs without it, so also check new SDCs with it uninstalled (see below). |
 | `canvas_vite` | **Keep disabled** | Local only when needed | ONLY when developing the Canvas editor UI itself (the React app). Requires Vite dev server running. Causes `ERR_CONNECTION_REFUSED` errors if Vite is not running. |
 | `canvas_ai` | Hidden/internal | Per-environment | AI-assisted page building. Enable if using Canvas AI features. |
 | `canvas_oauth` | As needed | Production + local | Only if external apps need authenticated Canvas API access. |
@@ -600,6 +574,12 @@ export const Featured = {
 - Removes `Choice` constraint on ComponentSource plugins, allowing unstable plugin types
 - Shows the extensions toolbar in the Canvas editor UI
 - Enable: `ddev drush en canvas_dev_mode -y`
+- **Check new SDCs without it.** Its only hook in the Canvas 1.7.1 source removes the `Choice` constraint on the component `source` key, so it is not known to change SDC registration. But production runs without it, and a production-only 5xx was once seen alongside missing prop titles (unexplained; see [references/registration-and-config.md](references/registration-and-config.md)). As cheap insurance, before shipping a new or changed SDC:
+  ```bash
+  ddev drush pm:uninstall canvas_dev_mode -y && ddev drush cr
+  # render a page (or a test) that includes the component; it must not throw
+  ddev drush en canvas_dev_mode -y   # re-enable afterwards if you use it
+  ```
 
 **`canvas_vite`** details:
 - Connects to Vite dev server at `localhost:5173`
@@ -898,6 +878,16 @@ After modifying any component's `component.yml` props:
 2. **SDC components**: `ddev drush cr`
 3. **Always**: `ddev drush canvas:upgrade-instances` to check for stale instances
 4. **Always**: Test the Canvas editor page before pushing
+
+## Registration, Config Entities and Deploys
+
+Details, commands and detection steps: [references/registration-and-config.md](references/registration-and-config.md).
+
+- **Registration rules**: every prop and slot needs `title:`, every required prop needs `examples:`, every prop shape must be storable. Ineligible SDCs are disabled in Canvas (no entity is created, an existing one is disabled); reasons are recorded in `ComponentIncompatibilityReasonRepository`. As cheap insurance, check with `canvas_dev_mode` uninstalled after a `drush cr`.
+- **New SDC = new config**: Canvas auto-creates `canvas.component.sdc.<extension>.<name>` in the database. Export that one object in the same change, or the deploy's config import deletes it.
+- **Canvas module upgrade**: version-hash inputs change, so `drush cr` recomputes `active_version` on many `canvas.component.*` objects. Re-export each drifting name, confirm drift stays at zero across two more cache rebuilds, and never prune `versioned_properties`.
+- **`Different` right after an import**: if only `active_version` and one archived version differ, it is versioned-config recompute noise from a stale committed hash, not a settings change.
+- **Content templates**: no node-level in-context editor (Canvas 1.7.1 to 1.9.0, checked August 2026; [drupal.org/i/3498525](https://www.drupal.org/i/3498525)). Editors use the node form.
 
 ## Resources
 
