@@ -160,10 +160,15 @@ ddev drush config-split:import {split-name}
 ddev drush csim {split-name}
 ```
 
-**Import only base config (ignore splits)**: Drush 13's `config:import` has no option for this (`--skip-modules` was Drush 8). Deactivate the split instead, then import. A `--partial` import also skips config transformation, so splits are not applied to it.
+**Import only base config (ignore splits)**: Drush 13's `config:import` has no option for this (`--skip-modules` was Drush 8). `drush config-split:deactivate <split>` itself imports the config without the split, writing `status: false` into active config; a later full `config:import` re-activates the split if its synced YAML has `status: true`. To keep it off across imports, set a status override: `drush config-split:status-override <split> inactive` (stored in state; values `active|inactive|default`, alias `csso`), or in `settings.php`:
 ```bash
-ddev drush config-split:deactivate {split-name}
+ddev drush config-split:deactivate {split-name}                     # one-off
+ddev drush config-split:status-override {split-name} inactive       # sticks across imports
 ```
+```php
+$config['config_split.config_split.{split-name}']['status'] = FALSE;  // settings.php
+```
+A `--partial` import skips config transformation, so no split is applied to it at all.
 
 ### Activate/Deactivate Splits
 
