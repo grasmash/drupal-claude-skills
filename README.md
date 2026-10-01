@@ -165,31 +165,31 @@ You can also invoke skills explicitly:
 ## Repository Structure
 
 ```
-skills/                              # Skills (agentskills.io format)
-├── drupal-at-your-fingertips/       #   50+ Drupal topics
-│   ├── SKILL.md
-│   └── references/
-├── drupal-config-mgmt/              #   Config management
-│   ├── SKILL.md
-│   └── references/
-├── drupal-contrib-mgmt/             #   Module management
-│   ├── SKILL.md
-│   ├── references/
-│   └── examples/
-├── drupal-ddev/                     #   DDEV local dev
-│   ├── SKILL.md
-│   └── references/
-├── ivangrynenko-cursorrules-drupal/ #   Security patterns
-│   ├── SKILL.md
-│   └── references/
-├── drupal-simple-oauth/             #   OAuth2 patterns
-│   └── SKILL.md
-├── drupal-search-api/               #   Search API patterns
-│   └── SKILL.md
-├── drupal-canvas/                   #   Canvas components
-│   └── SKILL.md
-└── skill-developer/                 #   Meta-skill for creating skills
-    └── SKILL.md
+skills/                              # One dir per skill: SKILL.md + optional references/, examples/, scripts/
+├── acquia-source/
+├── canvas-contribution/
+├── claude-code-mcp-setup/
+├── design-review/
+├── drupal-api-endpoints/
+├── drupal-at-your-fingertips/
+├── drupal-canvas/
+├── drupal-canvas-sdc/
+├── drupal-config-mgmt/
+├── drupal-config-reconcile/
+├── drupal-contrib-mgmt/
+├── drupal-ddev/
+├── drupal-deploy-safety/
+├── drupal-mail/
+├── drupal-performance/
+├── drupal-search-api/
+├── drupal-simple-oauth/
+├── drupal-testing/
+├── drupal-views-patterns/
+├── drupal-vite-theme/
+├── ivangrynenko-cursorrules-drupal/
+├── mockup-parity/
+├── sentry-integration/
+└── skill-developer/
 .claude/
 ├── agents/                          # Agent definitions
 │   ├── quality-gate.md
