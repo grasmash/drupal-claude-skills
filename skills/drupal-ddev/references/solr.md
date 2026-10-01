@@ -2,7 +2,7 @@
 
 ## Overview
 
-DDEV can run a local Solr service for Search API development and testing. This is useful for testing search functionality without relying on Pantheon's Solr service.
+DDEV can run a local Solr service for Search API development and testing. This is useful for testing search functionality without relying on a remote-hosted Solr service.
 
 ## Installation
 
@@ -48,9 +48,9 @@ This creates:
 **CRITICAL**: Use `settings.ddev.php` for DDEV-specific overrides, NOT `settings.local.php`.
 
 ```php
-// Override Pantheon Solr server to use local DDEV Solr
-$config['search_api.server.pantheon_search']['backend_config']['connector'] = 'standard';
-$config['search_api.server.pantheon_search']['backend_config']['connector_config'] = [
+// Override the remote Solr server to use local DDEV Solr
+$config['search_api.server.my_search_server']['backend_config']['connector'] = 'standard';
+$config['search_api.server.my_search_server']['backend_config']['connector_config'] = [
   'scheme' => 'http',
   'host' => 'solr',              // DDEV container hostname
   'port' => '8983',              // Internal port
@@ -72,7 +72,7 @@ $config['search_api.server.pantheon_search']['backend_config']['connector_config
 
 ✅ **DO**: Put DDEV overrides in `settings.ddev.php`
 - Only loads when `IS_DDEV_PROJECT=true`
-- Never loads on Pantheon
+- Never loads in the remote/production environment
 - DDEV-managed file
 
 ❌ **DON'T**: Put DDEV overrides in `settings.local.php`
@@ -107,7 +107,7 @@ ddev drush search-api:status
 
 ```bash
 # Search via Drush
-ddev drush search-api:search mixed_entities "guitar"
+ddev drush search-api:search mixed_entities "test query"
 
 # Or via Solr admin UI
 ddev solr-admin
@@ -153,16 +153,16 @@ ddev restart
 ddev exec curl http://solr:8983/solr/admin/ping
 ```
 
-### Wrong Connector on Pantheon
+### Wrong Connector in Production
 
 **Problem**: Production shows `Could not resolve host: solr`
 
-**Cause**: DDEV Solr config deployed to Pantheon
+**Cause**: DDEV Solr config deployed to the remote/production environment
 
 **Solution**:
 - Move config from `settings.local.php` → `settings.ddev.php`
 - Ensure `settings.local.php` is in `.gitignore`
-- Never commit DDEV-specific settings to git if they override production services
+- Never commit DDEV-specific settings to git if they override remote services
 
 ### Core Not Found
 
@@ -201,10 +201,10 @@ ddev drush search-api:index
 
 ```php
 // settings.php - Shared settings
-include 'settings.pantheon.php';  // Pantheon auto-config
+// include your hosting target's auto-config include here, if any
 
 // settings.ddev.php - DDEV-only (only loads if IS_DDEV_PROJECT=true)
-$config['search_api.server.pantheon_search']['backend_config']['connector'] = 'standard';
+$config['search_api.server.my_search_server']['backend_config']['connector'] = 'standard';
 
 // settings.local.php - Developer-specific (gitignored)
 // Use for personal overrides only, never DDEV service config
@@ -214,26 +214,25 @@ $config['search_api.server.pantheon_search']['backend_config']['connector'] = 's
 
 | Environment | Connector | Config |
 |-------------|-----------|--------|
-| **Pantheon** (dev/test/live) | `pantheon` | Auto-configured by Pantheon |
+| **Remote/production** | hosting-specific | Auto-configured by the hosting platform |
 | **DDEV Local** | `standard` | Override in `settings.ddev.php` |
-| **Other Local** | `standard` or `pantheon` | Override in `settings.local.php` |
+| **Other Local** | `standard` | Override in `settings.local.php` |
 
 ### 3. .gitignore
 
 Ensure these are ignored:
 ```gitignore
-docroot/sites/default/settings.local.php
-docroot/sites/default/settings.ddev.php  # DDEV manages this
+web/sites/default/settings.local.php
+web/sites/default/settings.ddev.php  # DDEV manages this
 ```
 
-## Integration with Pantheon
+## Integration with a Remote/Production Environment
 
 ### Syncing Data
 
 ```bash
-# Pull database from Pantheon
-terminus backup:create sitename.dev --element=db
-terminus backup:get sitename.dev --element=db --to=backup.sql.gz
+# Pull database from the remote/production environment
+# (mechanism depends on hosting target — e.g. terminus for Pantheon)
 
 # Import locally
 ddev import-db --file=backup.sql.gz
@@ -261,7 +260,7 @@ ddev launch /search
 - [ ] Verify no DDEV Solr config in `settings.local.php`
 - [ ] Ensure `settings.local.php` is in `.gitignore`
 - [ ] DDEV overrides only in `settings.ddev.php`
-- [ ] Test that Pantheon connector works after config import
+- [ ] Test that the production connector works after config import
 - [ ] Clear cache after deployment
 
 ## Advanced: Custom Solr Configuration
@@ -293,7 +292,6 @@ services:
 
 ## Related Documentation
 
-- [Pantheon Search API Solr](https://pantheon.io/docs/solr)
 - [DDEV Solr Add-on](https://github.com/ddev/ddev-solr)
 - [Drupal Search API](https://www.drupal.org/project/search_api)
 - [Drupal Search API Solr](https://www.drupal.org/project/search_api_solr)
@@ -304,15 +302,15 @@ services:
 
 **What Happened**:
 - Added Solr config to `settings.local.php`
-- File was tracked in git and deployed to Pantheon
-- Overwrote Pantheon's Solr connector with DDEV hostname `solr:8983`
+- File was tracked in git and deployed to the remote/production environment
+- Overwrote the production Solr connector with DDEV hostname `solr:8983`
 - Production search failed with "Could not resolve host: solr"
 
 **Root Cause**:
 ```php
 // settings.local.php (WRONG - deployed to production)
-$config['search_api.server.pantheon_search']['backend_config']['connector'] = 'standard';
-$config['search_api.server.pantheon_search']['backend_config']['connector_config']['host'] = 'solr';
+$config['search_api.server.my_search_server']['backend_config']['connector'] = 'standard';
+$config['search_api.server.my_search_server']['backend_config']['connector_config']['host'] = 'solr';
 ```
 
 **Fix**:
@@ -336,8 +334,8 @@ if (getenv('IS_DDEV_PROJECT') == 'true' && is_readable($ddev_settings)) {
   require $ddev_settings;  // ✅ Only loads in DDEV
 }
 
-if (!isset($_ENV['PANTHEON_ENVIRONMENT']) && file_exists($local_settings)) {
-  include $local_settings;  // ✅ Only loads outside Pantheon
+if (!getenv('IS_DDEV_PROJECT') && file_exists($local_settings)) {
+  include $local_settings;  // ✅ Only loads outside DDEV, adjust per hosting target
 }
 ```
 

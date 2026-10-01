@@ -1,18 +1,6 @@
 ---
-description: Canvas contribution workflow for contributing features/fixes back to drupal.org. Use when developing features for Canvas module that will be contributed upstream. Covers two-repository workflow, issue forks, merge requests, and composer patches.
-globs:
-  - "patches/canvas-*.patch"
-  - "**/Sites/canvas-contrib/**/*"
-triggers:
-  - contribute to canvas
-  - canvas contribution
-  - canvas patch
-  - canvas issue
-  - canvas merge request
-  - drupal.org canvas
-  - canvas fork
-  - upstream canvas
-alwaysApply: false
+name: canvas-contribution
+description: Canvas contribution workflow for contributing features/fixes back to drupal.org. Use when developing features for the Drupal Canvas module that will be contributed upstream. Covers two-repository workflow, issue forks, merge requests, and composer patches.
 ---
 
 # Canvas Contribution Workflow
@@ -26,7 +14,7 @@ For the general drupal.org contribution workflow (issue creation, issue forks, c
 ### Repository Structure
 
 - **Canvas Contrib Repo**: `~/Sites/canvas-contrib/`
-- **GG App Repo**: `~/Sites/myproject/`
+- **Your App Repo**: `~/Sites/<your-project>/`
 
 ### Initial Clone (One-Time)
 
@@ -49,12 +37,12 @@ npm run lint -- --fix  # Auto-fix lint errors
 npm run build   # Build for production
 ```
 
-### After Applying Patches in GG
+### After Applying Patches in Your App
 
 ```bash
-cd ~/Sites/myproject
-composer reinstall drupal/canvas
-cd docroot/modules/contrib/canvas/ui && npm run build
+cd ~/Sites/<your-project>
+ddev composer reinstall drupal/canvas
+cd <docroot>/modules/contrib/canvas/ui && npm run build
 ddev drush cr
 ```
 
