@@ -64,8 +64,9 @@ mv field-ui--unsupported-operand-types--3552531-2.patch patches/
   }
 }
 
-# Apply
-composer install
+# Record it in patches.lock.json, then re-install core so the patch applies
+composer patches-relock
+composer reinstall drupal/core
 ```
 
 ### Common Search Patterns

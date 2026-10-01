@@ -38,8 +38,11 @@ npm run build   # Build for production
 
 ### After Applying Patches in Your App
 
+After adding or changing a Canvas entry in `extra.patches`, relock before reinstalling; composer-patches v2 applies from `patches.lock.json`, not `composer.json` (full workflow: the `drupal-contrib-mgmt` skill).
+
 ```bash
 cd <project-root>
+ddev composer patches-relock
 ddev composer reinstall drupal/canvas
 cd <docroot>/modules/contrib/canvas/ui && npm run build
 ddev drush cr

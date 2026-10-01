@@ -21,11 +21,10 @@ composer require drupal/module_name:^3.0 --with-all-dependencies
 # Update multiple modules
 composer require drupal/module_a drupal/module_b --with-all-dependencies
 
-# After any update, ALWAYS run database updates
+# After any update, ALWAYS run database updates (updatedb rebuilds caches when it finishes)
 drush updb -y
 
-# Clear cache if needed
-drush cr
+# On a deployed environment, use the full deploy tail instead; see the drupal-deploy-safety skill
 
 # CRITICAL: Test by visiting pages to check for fatal errors
 # Visit at least one page that uses the updated module
@@ -124,7 +123,7 @@ Key differences in 2.x:
 - Uses `git apply` instead of `patch` binary (more reliable)
 - `enable-patching` option removed (patching is always enabled)
 - Better error messages and debugging
-- **CRITICAL — the `patches.lock.json` apply source**: v2 applies patches from `patches.lock.json` on `composer install` / `composer reinstall`. It does **NOT** read `extra.patches` in `composer.json` during those commands — only `composer update` and `composer patches-relock` re-read `composer.json` and regenerate the lock. So adding a patch to `composer.json` and running `composer install` applies **nothing** for that patch until you relock. This is the #1 cause of patches that "keep regressing": local dev looks fixed (you hand-applied it or ran `update`), but the next clean install — CI, a teammate, a fresh deploy — reads the stale lock and drops the patch. **Always run `composer patches-relock` after editing `extra.patches`, and commit `patches.lock.json`.**
+- **CRITICAL — the `patches.lock.json` apply source**: v2 applies patches from `patches.lock.json` whenever Composer installs or updates a package (`composer install`, `update`, `reinstall`, `patches-repatch`). None of those re-read `extra.patches` in `composer.json`: only `composer patches-relock`, or a missing `patches.lock.json`, regenerates the lock (composer-patches 2.0.0, `Patches::loadLockedPatches()`). So adding a patch to `composer.json` and running `composer install` or `composer update` applies **nothing** for that patch until you relock. This is the #1 cause of patches that "keep regressing": local dev looks fixed (you hand-applied it or ran `update`), but the next clean install — CI, a teammate, a fresh deploy — reads the stale lock and drops the patch. **Always run `composer patches-relock` after editing `extra.patches`, and commit `patches.lock.json`.**
 
 ### Verifying Patches Are Applied
 
@@ -148,7 +147,7 @@ Key differences in 2.x:
 **Adding a new patch** (the relock step is the one everyone forgets):
 1. Drop the `.patch` file in `patches/`
 2. Register it in `composer.json` under `extra.patches`
-3. **Run `composer patches-relock`** — adds the patch to `patches.lock.json`. WITHOUT this, step 4's `composer install` applies nothing (v2 reads the lock, not `composer.json`).
+3. **Run `composer patches-relock`** — adds the patch to `patches.lock.json`. WITHOUT this, step 4 applies nothing (v2 reads the lock, not `composer.json`).
 4. Run `composer reinstall drupal/module_name` (or `composer patches-repatch`) to apply the patch to the working tree — v2 patches a package only when Composer installs or updates it, so a plain `composer install` does not re-patch a module that is already installed
 5. **`git add` and commit** `composer.json`, `patches.lock.json`, and the new `.patch` file. If the project commits contrib code, commit the modified contrib file too — platforms that deploy from git without running `composer install` can't apply patches on their own, so the committed contrib file must already be in its patched form
 6. **Write a behavior test for the patched functionality** (see below)
@@ -191,17 +190,18 @@ Search the issue queue for an existing patch BEFORE writing one; the step-by-ste
 ### Patch Application
 
 ```bash
-# Install with patches
+# Fresh checkout: packages are installed and patched from patches.lock.json
 composer install
 
-# If patches fail, composer will error
-# Update or remove failing patches, then retry
-composer install
+# After ANY change to extra.patches (add, edit, remove), relock first
+composer patches-relock
 
-# Re-patch a single module (most common)
-composer update drupal/module_name
+# Re-patch a single module (most common). A plain `composer install` or
+# `composer update` does nothing for a package that is already installed at
+# the locked version, so its patches are not re-applied.
+composer reinstall drupal/module_name
 
-# Re-patch ALL patched dependencies (use when changing multiple patches)
+# Re-patch ALL patched dependencies (deletes and reinstalls them)
 composer patches-repatch
 ```
 
@@ -220,8 +220,7 @@ The six-step upgrade_status workflow (analyze, identify, fix custom code, `.info
 - [ ] Search for and apply necessary patches
 - [ ] Confirm every existing patch on the module has a behavior test, and run it after the bump
 - [ ] Run `composer require drupal/module_name:^X.0 --with-all-dependencies`
-- [ ] Run `drush updb -y`
-- [ ] Run `drush cr`
+- [ ] Run `drush updb -y` (it rebuilds caches at the end; on a deployed environment run the full tail from the `drupal-deploy-safety` skill)
 - [ ] Run `drush upgrade_status:analyze module_name`
 - [ ] Test module functionality by visiting relevant pages
 - [ ] Check for PHP errors/warnings in logs
@@ -241,6 +240,7 @@ composer show drupal/module_name
 
 # 3. Update composer.json with new patch URL
 # 4. Or remove patch if merged upstream
+# 5. Either way: composer patches-relock && composer reinstall drupal/module_name
 ```
 
 ### Version Conflict
@@ -254,7 +254,9 @@ composer show drupal/module_name
 
 ```bash
 # Error: "patch ... has already been applied"
-# Module maintainer merged the patch - remove from composer.json
+# Module maintainer merged the patch - remove from composer.json, then
+composer patches-relock
+composer reinstall drupal/module_name
 ```
 
 ### Database Update Fails
@@ -262,7 +264,8 @@ composer show drupal/module_name
 ```bash
 # Error during drush updb
 # 1. Check error message carefully
-# 2. May need to disable module, update, re-enable
+# 2. Last resort only: pm:uninstall DELETES the module's config and stored data.
+#    Back up the database first, and never do this on a module holding data you need.
 drush pm:uninstall module_name
 composer require drupal/module_name --with-all-dependencies
 drush pm:enable module_name

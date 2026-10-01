@@ -8,14 +8,15 @@ Worked recipes for frequent contrib update scenarios.
 
 ```bash
 # 1. Find patch in issue queue
-# 2. Add to composer.json patches section
+# 2. Add to composer.json patches section, then record it in patches.lock.json
+#    (v2 applies from the lock; without the relock the update below skips the patch)
+composer patches-relock
 # 3. Update module
 composer require drupal/module_name:^3.0 --with-all-dependencies
-drush updb -y
-drush cr
+drush updb -y   # rebuilds caches when it finishes
 # 4. Test
 # 5. Commit
-git add composer.json composer.lock patches/
+git add composer.json composer.lock patches.lock.json patches/
 git commit -m "Update module_name to 3.0 with D11 compatibility patch"
 ```
 
