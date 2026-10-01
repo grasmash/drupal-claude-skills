@@ -55,8 +55,8 @@ Each reference links to the full chapter on drupalatyourfingertips.com with:
 - @references/dtt.md - Drupal Test Traits
 
 ### Advanced Topics
-- @references/batch.md - Batch API for long operations
-- @references/queue.md - Queue API for background tasks
+- [Batch API](https://drupalatyourfingertips.com/batch) - Batch API for long operations (online chapter)
+- [Queue API](https://drupalatyourfingertips.com/queue) - Queue API for background tasks (online chapter)
 - @references/cron.md - Cron jobs and scheduling
 - @references/ajax.md - AJAX framework
 - @references/javascript.md - JavaScript in Drupal

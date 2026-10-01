@@ -9,7 +9,7 @@ set -e
 
 UPSTREAM_URL="https://drupalatyourfingertips.com"
 UPSTREAM_REPO="https://github.com/selwynpolit/d9book"
-SKILLS_DIR=".claude/skills"
+SKILLS_DIR="skills"
 SKILL_NAME="drupal-at-your-fingertips"
 SKILL_DIR="$SKILLS_DIR/$SKILL_NAME"
 
@@ -25,7 +25,7 @@ create_d9book_skill() {
   cat > "$SKILL_DIR/SKILL.md" <<'EOT'
 ---
 name: drupal-at-your-fingertips
-description: Comprehensive Drupal patterns from "Drupal at Your Fingertips" by Selwyn Polit. Covers 50+ topics including services, hooks, forms, entities, caching, testing, and more.
+description: "Drupal 9-11 core API patterns from Selwyn Polit's book \"Drupal at Your Fingertips\": services and dependency injection, hooks, events, plugins, entities, Form API, routes and controllers, Twig, caching, AJAX, database queries, configuration, Paragraphs, and Drupal Test Traits. Use when writing or reviewing custom Drupal module or theme code and a worked example or API refresher is needed for one of these subsystems. Some topics carry full reference content; the rest link to the online chapter."
 ---
 
 # Drupal at Your Fingertips
@@ -80,8 +80,8 @@ Each reference links to the full chapter on drupalatyourfingertips.com with:
 - @references/dtt.md - Drupal Test Traits
 
 ### Advanced Topics
-- @references/batch.md - Batch API for long operations
-- @references/queue.md - Queue API for background tasks
+- [Batch API](https://drupalatyourfingertips.com/batch) - Batch API for long operations (online chapter)
+- [Queue API](https://drupalatyourfingertips.com/queue) - Queue API for background tasks (online chapter)
 - @references/cron.md - Cron jobs and scheduling
 - @references/ajax.md - AJAX framework
 - @references/javascript.md - JavaScript in Drupal
@@ -180,5 +180,5 @@ done
 echo ""
 echo "✅ Done! drupal-at-your-fingertips skill created"
 echo ""
-echo "Skill: .claude/skills/drupal-at-your-fingertips/"
+echo "Skill: skills/drupal-at-your-fingertips/"
 echo "References: $topic_count topic reference files"
