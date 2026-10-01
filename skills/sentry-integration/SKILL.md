@@ -145,7 +145,7 @@ Backend tracing is provided by the `raven` module (Drupal Sentry SDK). Config in
 
 Use Sentry before asking someone with server access for watchdog output or log pulls — errors, watchdog entries, per-route transaction volume and p50/p95, DB/Twig spans, breadcrumbs, trace ids and release tagging are usually all there. But state these limits in any verdict built on it.
 
-**Raven forwards error level and above only.** Watchdog/logger entries reach Sentry only at the levels enabled in `raven.settings:log_levels` (typically error and above). "No Sentry events" means nothing was logged at error+, not that nothing was logged. If a non-error outcome must be searchable in prod, capture it through the Sentry SDK directly with explicit tags rather than inflating its log severity (`log_levels` is site-wide; there's no per-channel level).
+**Raven forwards only the log levels your site enables.** Watchdog/logger entries become Sentry events only at the levels enabled in `raven.settings:log_levels` (the module installs with every level off; sites commonly enable error and above). Check your config before reading silence: if only error+ is enabled, "no Sentry events" means nothing was logged at error+, not that nothing was logged. Raven can also send log records to Sentry Logs (structured logs) via `enable_logs` plus its own `logs_log_levels` mapping (both off at install, per raven 7.4.0's config schema). Either way `log_levels` is site-wide with no per-channel level, so if one non-error outcome must be searchable in prod, capture it through the Sentry SDK directly with explicit tags rather than inflating its log severity.
 
 ### Dataset facts (verify on your org — these were measured, not documented)
 
@@ -163,7 +163,7 @@ Use Sentry before asking someone with server access for watchdog output or log p
    - **User agent:** parsed `browser.name`, `browser` (name + version) and `device.family` are populated on server transactions; `user_agent.original` was empty in both spans and errors. The raw `User-Agent` exists only as a request header on error event detail.
    - **`os.name` is the app server** ("Linux") on server transactions; it describes the client only on browser-SDK spans. Likewise `geo.*` / `user.geo` describe the app server's location, not the client's.
    - **Client IP:** `user.ip` is empty everywhere when `raven.settings:capture_user_ip` is `false`. The client address may then exist only in CDN/proxy client-IP request headers on error event detail — and those can be client-supplied and passed straight through by some platforms, so trust them for ordinary bots, never for a deliberate scraper.
-   - **HTTP status** is not queryable on server transactions (`http.status_code` is null there); use `span.status` (`ok`, `permission_denied`, `unavailable`, …). Status codes that do appear in `spans` come from browser-SDK fetch/resource spans.
+   - **HTTP status** was not queryable on server transactions (`http.status_code` was null there); use `span.status` (`ok`, `permission_denied`, `unavailable`, …). Status codes that do appear in `spans` come from browser-SDK fetch/resource spans.
    - **`user.id`** was "0" on ~100% of server transactions (cause unproven); error events carry real user ids.
    - Attributing traffic that raised no error still needs the web server access log.
 
