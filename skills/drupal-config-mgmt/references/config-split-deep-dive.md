@@ -83,7 +83,7 @@ adding:
 removing:
   dependencies:
     module:
-      - gg_search
+      - my_module_search
   server: null
 ```
 
@@ -146,7 +146,7 @@ removing:
   server: null  # Removes the key entirely
   dependencies:
     module:
-      - gg_search  # Removes this module from dependency list
+      - my_module_search  # Removes this module from dependency list
 ```
 
 ### Important Notes on Patch Semantics
@@ -251,7 +251,7 @@ partial_list: {}
 search_api.server.pantheon_search.yml (FULL FILE - complete split)
 config_split.patch.search_api.index.mixed_entities.yml (PATCH - auto-generated dependency)
 config_split.patch.search_api.index.mobile_content.yml (PATCH - auto-generated dependency)
-config_split.patch.search_api.index.teleport_groups.yml (PATCH - auto-generated dependency)
+config_split.patch.search_api.index.groups.yml (PATCH - auto-generated dependency)
 config_split.patch.search_api.index.users.yml (PATCH - auto-generated dependency)
 ```
 
