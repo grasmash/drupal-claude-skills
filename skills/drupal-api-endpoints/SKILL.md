@@ -161,6 +161,11 @@ final class ApiController extends ControllerBase {
 
 ### Step 3: Client Implementation (fetch)
 
+This skill covers the Drupal end of the seam: auth, CSRF tokens, and response
+shape. If the client is built with a JavaScript framework (React, Vue,
+Angular, etc.), also load a skill for that framework and follow its current
+practices, including escaping and XSS guidance when rendering API output.
+
 Use `fetch` with optimistic UI and revert-on-failure — not jQuery `$.ajax`.
 
 ```javascript

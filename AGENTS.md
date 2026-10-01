@@ -58,6 +58,12 @@ The following sections document how to use the included agents effectively in a 
 
 Maximize parallel work. Spawn multiple sub-agents in a single message when tasks are independent. Use agent teams for features spanning Drupal + frontend. Research areas concurrently before implementing.
 
+### JavaScript Frameworks on Drupal
+
+These skills cover the Drupal side only. When a task involves a JavaScript framework layered on Drupal (React, Vue, Angular, Svelte, Alpine, or whatever the project uses), in a theme, a decoupled front end, or Canvas code components, also find and load a skill for that framework (`npx skills find <framework>`, or the project's own skills). Follow that framework's current best practices, including its security guidance: XSS (`v-html`, `dangerouslySetInnerHTML`), build config, and dependency audit.
+
+The Drupal skills here own the seam: JSON:API/REST auth and CSRF tokens, `drupalSettings` and its cache contexts, `processed` vs raw field values, and library/asset wiring.
+
 ### Quality Gate (mandatory before commit)
 
 Before committing code changes, spawn the `quality-gate` agent to review the diff. It checks security, performance, testing, and regressions. Proactively run the review before reaching the commit step — don't wait for a reminder. For agent teams, the team lead should spawn quality-gate after all teammates finish, not each teammate individually.

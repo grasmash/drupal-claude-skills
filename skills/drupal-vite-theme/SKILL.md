@@ -18,6 +18,14 @@ This is a patterns-and-pitfalls skill, not a tutorial. Each lesson is
 Tailwind CSS **4.3** (`@tailwindcss/vite` 4.3). Re-check version-bound claims
 when you upgrade.
 
+**Scope:** this skill covers the Drupal side of the build (library wiring,
+hashed assets, SDC). If the theme also ships a JavaScript framework (React,
+Vue, Angular, Svelte, Alpine, etc.), find and load a skill for that framework
+too (`npx skills find <framework>`) and follow its current best practices,
+including security guidance (XSS via `v-html`/`dangerouslySetInnerHTML`, build
+config, dependency audit). For `drupalSettings` use `drupal-performance` for
+cache contexts, and use `processed` rather than raw field values for markup.
+
 ## When This Skill Activates
 
 - Building or restructuring a theme on Vite / Tailwind v4 / SDC

@@ -42,6 +42,8 @@ Or from a cloned copy:
 npx skills add grasmash/drupal-claude-skills
 ```
 
+These skills cover Drupal only. For a JavaScript framework on top of Drupal (React, Vue, Angular, and so on), install that framework's skills alongside them, for example with `npx skills find <framework>`.
+
 This copies skills into `.claude/skills/` but does **not** install agents, settings, or the workflow guide. Works with Claude Code, Cursor, Codex, Gemini CLI, and any tool supporting the [agentskills.io specification](https://agentskills.io).
 
 ### Option 4: Manual
