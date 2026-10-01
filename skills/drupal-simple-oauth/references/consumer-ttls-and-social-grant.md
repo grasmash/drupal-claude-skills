@@ -46,20 +46,38 @@ Make the hook idempotent (compare before writing) so it is safe on every environ
 
 ## Social/Google token grant: validate aud against an allow-list
 
-A common pattern for native "Sign in with Google" is a custom OAuth grant (for example `grant_type=social`) that accepts a Google token from the app, verifies it with Google (tokeninfo or JWKS), finds or creates the Drupal user, and issues a Simple OAuth token. The grant must check that the Google token was issued for **your** application by validating its audience (`aud`, and `azp` where present).
+A common pattern for native "Sign in with Google" is a custom OAuth grant (for example `grant_type=social`) that accepts a Google token from the app, verifies it with Google (tokeninfo or JWKS), finds or creates the Drupal user, and issues a Simple OAuth token. The grant must check that the Google token was issued for **your** application by validating its audience (`aud`, and the authorized party `azp` where present).
 
-**The trap:** a project normally has several Google OAuth client ids: one for the website's login button, and separate ones for the Android, iOS and app-web builds. Google reports `aud`/`azp` as whichever client **minted** the token. Tokens from the mobile apps therefore carry the app client ids, not the website client id stored in your social-auth module's settings. An audience check anchored on that single website client id rejects every app login, failing closed with no obvious error on the website.
+**The trap:** a project normally has several Google OAuth client ids: one for the website's login button, and separate ones for each mobile and web client. Google reports `aud`/`azp` as whichever client **minted** the token. Tokens from the mobile apps therefore carry the app client ids, not the website client id stored in your social-auth module's settings. An audience check anchored on that single website client id rejects every app login, failing closed with no obvious error on the website.
 
 **Fix:** validate against an allow-list of trusted audiences:
 
 ```php
-$trusted = $this->config('my_module.settings')->get('google_trusted_audiences') ?: [];
+$trusted = $this->config('my_module.settings')->get('trusted_google_client_ids') ?: [];
 if (!$trusted) {
   // Fail closed to the single web client id rather than accepting anything.
   $trusted = [$this->config('social_auth_google.settings')->get('client_id')];
 }
-if (!in_array($token_info['aud'], $trusted, TRUE)) {
-  $this->logger->error('Google token audience @aud is not trusted.', ['@aud' => $token_info['aud']]);
+
+// Collect whichever audience claims Google returned; a token with neither is rejected.
+$claims = array_filter([
+  $token_info['aud'] ?? NULL,
+  $token_info['azp'] ?? NULL,
+], 'is_string');
+
+$accepted = FALSE;
+foreach ($claims as $claim) {
+  if (in_array($claim, $trusted, TRUE)) {
+    $accepted = TRUE;
+    break;
+  }
+}
+
+if (!$accepted) {
+  $this->logger->error('Google token audience not trusted (aud: @aud, azp: @azp).', [
+    '@aud' => $token_info['aud'] ?? '(none)',
+    '@azp' => $token_info['azp'] ?? '(none)',
+  ]);
   throw OAuthServerException::accessDenied('Untrusted token audience.');
 }
 ```
