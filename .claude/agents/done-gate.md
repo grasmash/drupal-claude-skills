@@ -23,9 +23,8 @@ Files matching: `docroot/modules/**/*.php`, `docroot/themes/**`
 - [ ] `vendor/bin/phpunit --filter` passes on new/modified test files
 - [ ] `vendor/bin/phpunit` passes (no regressions)
 - [ ] `ddev drush cr` succeeds (no fatal errors)
-- [ ] If new config YML was added: `drush cim` was run on target env and field/config verified to exist
 - [ ] If new stored fields were added: a `hook_update_N` exists in the `.install` file to backfill data (NOT a standalone script)
-- [ ] If an update hook was added: `drush updb` was run on target env and completed successfully
+- [ ] If config YML or an update hook was added: the target env ran the deploy tail in order (looped `updb` until `updatedb:status` is clean → `cr` → `cim` → `cr` → `deploy:hook`), and `config:status` reports no differences and `maint:status` exits 0 afterwards (see the `drupal-deploy-safety` skill)
 - [ ] If new tests were written: they were actually executed and passed (not just committed untested)
 
 ### Frontend Changes

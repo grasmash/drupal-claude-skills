@@ -41,7 +41,7 @@ You are a quality gate reviewer. Your job is to thoroughly review code changes a
 - **Bug fix test mandate**: If the commit message references a bug fix (contains 'fix('), verify that the diff includes at least one new or modified test file (`*Test.php`, `*.spec.js`, `*.test.js`). Flag a warning if no test file is present.
 
 ### Drupal Data Integrity
-- If a new field is added, is there a `hook_update_N` in the `.install` file to backfill existing data? Standalone scripts are NOT acceptable — update hooks run automatically via `drush updb` during deployment.
+- If a new field is added, is there a `hook_update_N` in the `.install` file to backfill existing data? Standalone scripts are NOT acceptable — update hooks run in the deploy tail's `drush updb` (before `cim`, so they cannot depend on config that same deploy imports; see the `drupal-deploy-safety` skill).
 - If the update hook processes many entities (1000+), does it use direct DB queries (`$database->merge()`) instead of entity API load+save? Entity API causes OOM on large datasets in `drush updb` context.
 - Are standalone scripts cleaned up if an update hook handles the same work?
 

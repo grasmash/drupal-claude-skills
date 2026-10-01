@@ -45,10 +45,10 @@ the change class:
 | Anything import and update hooks cannot express (external service state, secrets, cloud resources, one-off manual steps) | An explicit, ordered list of commands in the plan | Check every step: each code path must resolve via the old source or the new one, never neither. |
 
 **Export config canonically.** Save the entity through its API (the UI, or
-`$entity->save()`), then export that one item with
-`drush config:get <name> --format=yaml`. If you write raw values through the
-config factory, the exported YAML has no calculated `dependencies`. You then
-get permanent `config:status` drift and weaker import ordering.
+`$entity->save()`), then export that one item with `drush config:get <name> --format=yaml` (not
+`core.extension.yml`: hand-add its one module line; see `drupal-config-mgmt`).
+If you write raw values through the config factory, the exported YAML has no
+calculated `dependencies`: permanent `config:status` drift, weaker ordering.
 
 **"Run database updates" only counts as a deploy plan if you actually wrote
 the update hook.** Otherwise write out the commands.
