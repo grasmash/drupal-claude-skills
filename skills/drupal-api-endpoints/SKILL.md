@@ -207,7 +207,7 @@ Page Cache). For a cacheable GET, return core's `CacheableJsonResponse`:
 ```php
 $response = new CacheableJsonResponse($data);
 $response->getCacheableMetadata()
-  ->addCacheContexts(['user.permissions'])
+  ->addCacheContexts(['user', 'user.permissions'])  // drop 'user' only if the data is not per-user
   ->addCacheTags($entity->getCacheTags());
 ```
 Contexts, tags, invalidation and the freshness test a caching change owes:
