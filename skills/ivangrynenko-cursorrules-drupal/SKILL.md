@@ -1,6 +1,6 @@
 ---
 name: ivangrynenko-cursorrules-drupal
-description: Drupal development and security patterns from Ivan Grynenko's cursor rules. Covers OWASP Top 10, authentication, access control, injection prevention, cryptography, configuration, database standards, file permissions, and more.
+description: "Drupal security and coding rules from Ivan Grynenko's cursorrules, organised by OWASP Top 10 (2021) category: authentication, access control, injection (SQL, XSS), cryptographic failures, security misconfiguration, vulnerable dependencies, SSRF, insecure design, integrity, and logging, plus database standards and file permissions. Use when writing or reviewing Drupal code for security, handling user input, building queries, handling file uploads, adding permission or access checks, making outbound HTTP requests, or preparing a security review."
 ---
 
 # Ivan Grynenko - Drupal Cursor Rules

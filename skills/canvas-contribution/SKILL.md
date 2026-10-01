@@ -1,6 +1,6 @@
 ---
 name: canvas-contribution
-description: Canvas contribution workflow for contributing features/fixes back to drupal.org. Use when developing features for the Drupal Canvas module that will be contributed upstream. Covers two-repository workflow, issue forks, merge requests, and composer patches.
+description: "Workflow for contributing features and fixes to the Drupal Canvas module on drupal.org while consuming it from a separate project: the two-repository setup, Canvas UI development, issue forks, merge requests, and composer patches. Use when developing a Canvas feature or bug fix intended for upstream, or when moving a local Canvas change onto a drupal.org issue. Extends drupal-contrib-mgmt with Canvas-specific details."
 ---
 
 # Canvas Contribution Workflow

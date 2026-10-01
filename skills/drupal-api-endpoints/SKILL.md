@@ -1,6 +1,6 @@
 ---
 name: drupal-api-endpoints
-description: Custom Drupal API endpoint patterns with UUID-based security. Use when creating custom routes, AJAX endpoints, or JSON:API filter access. Critical for preventing JSON:API cache poisoning. Always check for existing endpoints before creating new ones.
+description: "Patterns for custom Drupal API endpoints that use UUIDs instead of sequential IDs: route, controller, and fetch templates, response-shape contracts for installed app clients, webhook handlers, authenticated cURL testing, and the JSON:API filter-access cache-poisoning fix. Use when creating custom routes, AJAX or JSON endpoints for a frontend or mobile app, webhook receivers, or JSON:API filters, and before adding an endpoint, to check whether an existing one already serves the need."
 ---
 
 # Drupal API Endpoint Patterns

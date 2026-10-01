@@ -1,6 +1,6 @@
 ---
 name: mockup-parity
-description: Use when porting a static HTML mockup screen into a themed Twig/SDC route, conforming an existing route to its mockup, or executing any parity/reskin work item. Load alongside design-review for any parity work.
+description: "Workflow for porting static HTML mockups into themed Drupal Twig/SDC routes without dropping working capabilities: a two-gate reconciliation process, per-delta classification (style, structural, or conflict with a prior decision), fixing through shared components, and a Playwright-verified visual diff ledger. Use when porting a mockup screen into a route, conforming an existing route to its mockup, or executing any parity or reskin work item. Load alongside design-review."
 ---
 
 # Mockup Parity (Twig/SDC)

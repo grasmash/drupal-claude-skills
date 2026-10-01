@@ -1,6 +1,6 @@
 ---
 name: drupal-at-your-fingertips
-description: Comprehensive Drupal patterns from "Drupal at Your Fingertips" by Selwyn Polit. Covers 50+ topics including services, hooks, forms, entities, caching, testing, and more.
+description: "Drupal 9-11 core API patterns from Selwyn Polit's book \"Drupal at Your Fingertips\": services and dependency injection, hooks, events, plugins, entities, Form API, routes and controllers, Twig, caching, AJAX, database queries, configuration, Paragraphs, and Drupal Test Traits. Use when writing or reviewing custom Drupal module or theme code and a worked example or API refresher is needed for one of these subsystems. Some topics carry full reference content; the rest link to the online chapter."
 ---
 
 # Drupal at Your Fingertips

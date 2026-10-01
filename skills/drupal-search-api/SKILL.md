@@ -1,6 +1,6 @@
 ---
 name: drupal-search-api
-description: Search API configuration, boosting strategies, and processor patterns for Drupal. Covers index configuration, field types, custom boost processors, number field boosting, engagement metrics, and reindexing workflows.
+description: "Search API configuration, boosting strategies, and processor patterns for Drupal. Covers index field types, custom boost processors, number-field and engagement-metric boosting, Solr field-type drift on config export, and reindexing workflows. Use when configuring or debugging a Search API index, tuning relevance or result ranking, writing a custom search processor, or when search results are missing, stale, or ordered unexpectedly."
 ---
 
 # Drupal Search API Patterns

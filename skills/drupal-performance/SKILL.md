@@ -1,6 +1,6 @@
 ---
 name: drupal-performance
-description: Drupal performance optimization + REVIEW patterns/anti-patterns. Load WHENEVER reviewing, profiling, or changing performance — backend or frontend, before declaring perf work done. Core metric = cold-render DATABASE QUERY COUNT/VOLUME per route (networked production DBs cost ~10x+ local per query; local wall-time/Lighthouse hides real TTFB). Use for performance review/audit, slow pages/high TTFB, query count/N+1 reduction, entity loads in loops, caching/cache contexts, render cache metadata, CacheableJsonResponse endpoints.
+description: "Drupal performance review and optimization patterns and anti-patterns, backend and frontend. Treats cold-render database query count and volume per route as the core metric, because networked production databases cost roughly 10x or more per query than local, so local wall-time and Lighthouse hide real TTFB. Use when reviewing, profiling, or changing performance, before declaring performance work done, or for slow pages and high TTFB, N+1 queries, entity loads in loops, cache contexts and tags, render cache metadata, and CacheableJsonResponse endpoints."
 ---
 
 # Drupal Performance Optimization
