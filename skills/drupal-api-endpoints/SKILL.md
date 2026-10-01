@@ -205,6 +205,8 @@ Only a `CacheableResponseInterface` response carries cache metadata (a plain
 `JsonResponse` has no `getCacheableMetadata()` and is never cached by Dynamic
 Page Cache). For a cacheable GET, return core's `CacheableJsonResponse`:
 ```php
+use Drupal\Core\Cache\CacheableJsonResponse;
+
 $response = new CacheableJsonResponse($data);
 $response->getCacheableMetadata()
   ->addCacheContexts(['user', 'user.permissions'])  // drop 'user' only if the data is not per-user

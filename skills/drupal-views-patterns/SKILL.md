@@ -30,7 +30,9 @@ Every Views display has a **results cache** (the SQL result) and an
   freshness bucket.
 - **`Time`** — the same tag invalidation as `Tag`, PLUS a TTL. In core
   (11.4) `Time` inherits `CachePluginBase::cacheSet()`, which stores results
-  with `getCacheTags()`; the lifespan only adds an expiry. So `Time` bounds
+  with `getCacheTags()`; the lifespan only adds an expiry. Precisely: the
+  results cache = those tags + `results_lifespan` as expiry; the output cache
+  = the same tags + `output_lifespan` as max-age. So `Time` bounds
   staleness from things tags cannot see (a relative-date filter, data from
   outside the entity system); it does **not** stop tag churn. A leaderboard
   over entities whose counters are bulk-saved every few minutes stays cold
