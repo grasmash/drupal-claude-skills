@@ -100,19 +100,11 @@ cd ../../../..
 
 echo "Step 9: Adding patch to composer.json..."
 
-# Edit composer.json to add:
-cat >> composer.json <<'EOF'
-{
-  "extra": {
-    "patches": {
-      "drupal/licensing": {
-        "Replace deprecated user_roles() for D11 compatibility": "patches/licensing-user-roles-d11-fix.patch",
-        "Drupal 11 .info.yml support": "patches/licensing-d11-info.patch"
-      }
-    }
-  }
-}
-EOF
+# Register the patch (composer config --merge writes valid JSON and keeps the
+# package's other patches; appending with cat >> would corrupt composer.json).
+# Register only patch files that exist - this script creates just the one.
+composer config --json --merge extra.patches.drupal/licensing \
+  '{"Replace deprecated user_roles() for D11 compatibility": "patches/licensing-user-roles-d11-fix.patch"}'
 
 # Step 10: Apply via composer (v2 applies from patches.lock.json)
 echo "Step 10: Applying patch via composer..."
@@ -142,7 +134,7 @@ Manual testing:
 drush watchdog:show --severity=Error --count=10
 
 # Step 12: Commit
-git add composer.json composer.lock patches/licensing-user-roles-d11-fix.patch
+git add composer.json composer.lock patches.lock.json patches/licensing-user-roles-d11-fix.patch
 git commit -m "Fix deprecated user_roles() in licensing module for D11
 
 Created custom patch to replace deprecated user_roles() function with
