@@ -286,8 +286,7 @@ For comprehensive technical documentation, see:
 | [references/surgical-config.md](references/surgical-config.md) | Before any config change an agent makes: exporting, setting or deleting ONE named config object, the `core.extension.yml` exception, raw config writes that drop `dependencies`, baked (PHP-computed) config, verifying an import with `config:status`, shipping a config-only change |
 | [references/prod-config-merge.md](references/prod-config-merge.md) | Merging production config changes into a branch that carries local feature config (pull prod DB, export, restore your deleted/overwritten files) |
 | [references/config-splits.md](references/config-splits.md) | Deciding whether to use a split, or choosing between a Complete and a Partial split |
-| [references/config-split-deep-dive.md](references/config-split-deep-dive.md) | You need the Config Split 2.0 internals: patch files, file naming, the export/import process, dependency handling |
-| [references/config-split-deep-dive-generic.md](references/config-split-deep-dive-generic.md) | Same deep dive with a local-Solr search example; read it instead of the file above when that example fits your case |
+| [references/config-split-deep-dive.md](references/config-split-deep-dive.md) | You need the Config Split 2.0 internals: patch files, file naming, the export/import process, dependency handling, and worked local-vs-remote Solr examples (including a complete-split server with auto-generated index patches) |
 | [references/examples.md](references/examples.md) | You want worked examples: syncing one config from dev, syncing Search API config, comparing environments, updating split definitions |
 
 ## Config Status Check

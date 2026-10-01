@@ -47,7 +47,7 @@ Config Split 2.0 uses three internal lists to manage configuration:
 
 **File in split directory:**
 ```
-config/local/search_api.server.pantheon_search.yml  (full file)
+config/local/search_api.server.local_solr.yml  (full file)
 ```
 
 **File in default:**
@@ -74,27 +74,27 @@ DELETED - file does not exist
 
 **File in split directory:**
 ```yaml
-# config/local/config_split.patch.search_api.index.content_index.yml
+# config/local/config_split.patch.search_api.index.content.yml
 adding:
   dependencies:
     config:
-      - search_api.server.pantheon_search
-  server: pantheon_search
+      - search_api.server.local_solr
+  server: local_solr
 removing:
   dependencies:
-    module:
-      - my_module_search
-  server: null
+    config:
+      - search_api.server.remote_solr
+  server: remote_solr
 ```
 
 **File in default:**
 ```
-config/default/search_api.index.content_index.yml  (full base config)
+config/default/search_api.index.content.yml  (full base config)
 ```
 
 **Use cases:**
 - Different API endpoints per environment
-- Different server URLs (local Solr vs Pantheon Search)
+- Different server URLs (local Solr vs remote Solr cluster)
 - Cache settings that differ per environment
 - Any config that exists everywhere but with different VALUES
 
@@ -110,7 +110,7 @@ config/default/search_api.index.content_index.yml  (full base config)
 Format: `{config_name}.yml`
 
 Examples:
-- `search_api.server.pantheon_search.yml`
+- `search_api.server.local_solr.yml`
 - `devel.settings.yml`
 - `stage_file_proxy.settings.yml`
 
@@ -121,7 +121,7 @@ These are FULL config files, identical in structure to what would be in `config/
 Format: `config_split.patch.{config_name}.yml`
 
 Examples:
-- `config_split.patch.search_api.index.content_index.yml`
+- `config_split.patch.search_api.index.content.yml`
 - `config_split.patch.node.type.article.yml`
 - `config_split.patch.system.performance.yml`
 
@@ -136,17 +136,17 @@ Examples:
 ```yaml
 adding:
   # Keys/values to ADD or OVERRIDE in the base config
-  server: pantheon_search
+  server: local_solr
   dependencies:
     config:
-      - search_api.server.pantheon_search
+      - search_api.server.local_solr
 
 removing:
   # Keys/values to REMOVE from the base config
-  server: null  # Removes the key entirely
+  server: remote_solr  # Removes this value
   dependencies:
-    module:
-      - my_module_search  # Removes this module from dependency list
+    config:
+      - search_api.server.remote_solr  # Removes this dependency
 ```
 
 ### Important Notes on Patch Semantics
@@ -189,7 +189,7 @@ From the issue queue (#3232667):
    - KEEP base config in `config/default/{config}.yml`
 5. **For configs with dependencies on complete-split items:**
    - Automatically create patches to remove those dependencies
-   - Example: If `search_api.server.pantheon_search` is complete-split, all indexes that reference it get automatic patches
+   - Example: If `search_api.server.local_solr` is complete-split, all indexes that reference it get automatic patches
 
 ### Dependency-Driven Automatic Patches
 
@@ -198,18 +198,18 @@ From the issue queue (#3232667):
 **Quote from research:**
 > "In 2.x things that you list explicitly or things that would be deleted if you would uninstall a module you split will be split completely, the other config which depends on those will be changed to not depend on it any more and the change is saved as a config patch."
 
-**Real example from your site:**
+**Real example:**
 
-`search_api.server.pantheon_search` is in `complete_list`, so it's removed from `config/default/`.
+`search_api.server.local_solr` is in `complete_list`, so it's removed from `config/default/`.
 
 All search indexes that reference this server automatically get patches:
 ```yaml
-# config/local/config_split.patch.search_api.index.content_index.yml
+# config/local/config_split.patch.search_api.index.content.yml
 adding:
-  server: pantheon_search  # Re-add the server reference when local split is active
+  server: local_solr  # Re-add the server reference when local split is active
   dependencies:
     config:
-      - search_api.server.pantheon_search
+      - search_api.server.local_solr
 removing:
   server: null  # Remove the server when not in local (because server doesn't exist)
 ```
@@ -236,28 +236,91 @@ removing:
 
 ## Real-World Example Analysis
 
-### Your Current Setup
+### Example Setup: Local Solr vs Production Solr
+
+**Scenario**: You have a local Solr server for development and a remote Solr cluster for production environments.
 
 **Config Split Definition:**
 ```yaml
 # config/default/config_split.config_split.local.yml
 complete_list:
-  - search_api.server.pantheon_search
+  - search_api.server.local_solr
+partial_list:
+  - search_api.index.content
+```
+
+**Files in `config/local/`:**
+```
+search_api.server.local_solr.yml (FULL FILE - complete split)
+config_split.patch.search_api.index.content.yml (PATCH - points to local_solr)
+```
+
+**Files in `config/default/`:**
+```
+search_api.server.remote_solr.yml (production server config)
+search_api.index.content.yml (uses remote_solr by default)
+```
+
+**What happens on export:**
+
+1. `search_api.server.local_solr` is in `complete_list`
+2. Export saves full file to `config/local/`
+3. It's NOT in `config/default/` (only exists in local environment)
+4. Index configs get patches to swap servers when local split is active
+
+**What happens on import (with local split active):**
+
+1. Load base search index configs from `config/default/` (these use `remote_solr`)
+2. Load `search_api.server.local_solr.yml` from `config/local/`
+3. Apply patches to indexes:
+   - Change `server: remote_solr` to `server: local_solr`
+   - Update dependencies
+4. Result: Indexes use local Solr server
+
+**What happens on import (with local split inactive):**
+
+1. Load base search index configs from `config/default/`
+2. No patches applied
+3. Result: Indexes use remote Solr (production configuration)
+
+### Variant: Complete-Split Server With No Base Server
+
+**Scenario**: The search server exists ONLY in one split, there is no base server, and nothing is in `partial_list`.
+
+**Config Split Definition:**
+```yaml
+# config/default/config_split.config_split.local.yml
+complete_list:
+  - search_api.server.local_only
 partial_list: {}
 ```
 
 **Files in `config/local/`:**
 ```
-search_api.server.pantheon_search.yml (FULL FILE - complete split)
-config_split.patch.search_api.index.content_index.yml (PATCH - auto-generated dependency)
-config_split.patch.search_api.index.mobile_index.yml (PATCH - auto-generated dependency)
-config_split.patch.search_api.index.groups.yml (PATCH - auto-generated dependency)
+search_api.server.local_only.yml (FULL FILE - complete split)
+config_split.patch.search_api.index.content.yml (PATCH - auto-generated dependency)
 config_split.patch.search_api.index.users.yml (PATCH - auto-generated dependency)
+```
+
+Every index that references the server gets its own auto-generated patch, even though no index is listed in `partial_list`. A patch can also null a key and drop a module dependency:
+
+```yaml
+# config/local/config_split.patch.search_api.index.content.yml
+adding:
+  dependencies:
+    config:
+      - search_api.server.local_only
+  server: local_only
+removing:
+  dependencies:
+    module:
+      - my_module_search  # Removes this module from dependency list
+  server: null  # Removes the key entirely
 ```
 
 **What happens on export:**
 
-1. `search_api.server.pantheon_search` is in `complete_list`
+1. `search_api.server.local_only` is in `complete_list`
 2. Export DELETES it from `config/default/`
 3. Export saves full file to `config/local/`
 4. All indexes that reference this server get automatic patches
@@ -266,11 +329,11 @@ config_split.patch.search_api.index.users.yml (PATCH - auto-generated dependency
 **What happens on import (with local split active):**
 
 1. Load base search index configs from `config/default/` (these have `server: null` or no server)
-2. Load `search_api.server.pantheon_search.yml` from `config/local/`
+2. Load `search_api.server.local_only.yml` from `config/local/`
 3. Apply patches to indexes:
-   - Add `server: pantheon_search`
+   - Add `server: local_only`
    - Add dependency on server
-4. Result: Indexes use Pantheon Search server (from local split)
+4. Result: Indexes use the split-only server
 
 **What happens on import (with local split inactive):**
 
@@ -282,13 +345,13 @@ config_split.patch.search_api.index.users.yml (PATCH - auto-generated dependency
 
 ## Your Specific Issue Explained
 
-### Why `search_api.server.pantheon_search` is being deleted
+### Why Search Server Config is Being Deleted
 
 **Root cause**: It's in `complete_list`, not `partial_list`!
 
 ```yaml
 complete_list:
-  - search_api.server.pantheon_search  # ← HERE'S THE PROBLEM
+  - search_api.server.my_server  # ← HERE'S THE PROBLEM
 partial_list: {}
 ```
 
@@ -303,35 +366,35 @@ Edit `config/default/config_split.config_split.local.yml`:
 ```yaml
 complete_list: {}
 partial_list:
-  - search_api.server.pantheon_search
+  - search_api.server.my_server
 ```
 
 Then:
-1. `ddev drush cex`
-2. Check that `config/default/search_api.server.pantheon_search.yml` exists (base config)
-3. Check that `config/local/config_split.patch.search_api.server.pantheon_search.yml` exists (patch)
+1. `drush cex`
+2. Check that `config/default/search_api.server.my_server.yml` exists (base config)
+3. Check that `config/local/config_split.patch.search_api.server.my_server.yml` exists (patch)
 
-**Result**: Base Pantheon Search config stays in `config/default/`, local overrides are in patch file.
+**Result**: Base server config stays in `config/default/`, local overrides are in patch file.
 
 #### Option 2: Keep as Complete Split (Current behavior)
 
-If you want `search_api.server.pantheon_search` to ONLY exist in local environment:
+If you want `search_api.server.my_server` to ONLY exist in local environment:
 
 ```yaml
 complete_list:
-  - search_api.server.pantheon_search  # Keep here
+  - search_api.server.my_server  # Keep here
 partial_list: {}
 ```
 
 Then ensure you have a DIFFERENT server config for other environments.
 
-**Result**: `config/default/` doesn't have pantheon_search server at all. It's local-only.
+**Result**: `config/default/` doesn't have this server at all. It's local-only.
 
 #### Option 3: Different Servers Per Environment
 
 Create separate complete splits:
 - Local: Uses `search_api.server.local_solr` (complete split in local)
-- Dev/Test/Live: Uses `search_api.server.pantheon_search` (in config/default)
+- Production: Uses `search_api.server.remote_solr` (in config/default)
 
 Then indexes would need patches to swap servers per environment.
 
@@ -356,7 +419,7 @@ Then indexes would need patches to swap servers per environment.
 ✅ **Use partial_list for:**
 - Same feature, different settings (API URLs, credentials)
 - Performance settings that vary by environment
-- Server endpoints (local Solr vs Pantheon Search)
+- Server endpoints (local Solr vs remote Solr cluster)
 - Any config where base version is importable and functional
 
 ❌ **Don't use partial_list for:**
@@ -380,11 +443,12 @@ Then indexes would need patches to swap servers per environment.
 config/
 ├── default/           # Base config for all environments
 │   ├── search_api.index.*.yml  # Indexes (base versions)
-│   └── search_api.server.pantheon_search.yml  # Server (base version)
+│   └── search_api.server.remote_solr.yml  # Production server (base version)
 ├── local/            # Local development overrides
 │   ├── devel.settings.yml  # Complete split (module)
 │   ├── stage_file_proxy.settings.yml  # Complete split (module)
-│   └── config_split.patch.search_api.server.pantheon_search.yml  # Partial split (override to local Solr)
+│   ├── search_api.server.local_solr.yml  # Complete split (local-only server)
+│   └── config_split.patch.search_api.index.content.yml  # Partial split (swap to local server)
 └── prod/             # Production-specific
     └── system.performance.yml  # Complete split (aggressive caching)
 ```
@@ -399,7 +463,7 @@ config/
 4. **Dependencies create automatic patches** - Complete-split items trigger patches in dependent configs
 5. **Patch semantics are confusing** - `adding` means "add to config when split active", `removing` means "remove when split active"
 6. **Import order is reversed** - Splits process in reverse weight order on import vs export
-7. **Your issue**: `search_api.server.pantheon_search` is in `complete_list` when you want it in `partial_list`
+7. **Common issue**: Config is in `complete_list` when you want it in `partial_list`
 
 ---
 
@@ -413,6 +477,6 @@ config/
 
 ---
 
-**Last Updated**: 2024-11-17
+**Last Updated**: 2025-01-19
 **Config Split Version Analyzed**: 2.0.2
 **Drupal Version**: 10.x/11.x compatible

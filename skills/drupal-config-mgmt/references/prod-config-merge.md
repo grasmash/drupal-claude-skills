@@ -14,6 +14,8 @@ git add config/default/your-new-field.yml docroot/modules/custom/your_module/you
 git commit -m "feat: add new feature"
 ```
 
+`docroot/` here is the web root; yours may be `web/` instead.
+
 **Step 2: Pull production database**
 ```bash
 ddev pull pantheon --environment=live
@@ -71,21 +73,21 @@ git commit -m "chore: sync config from production"
 ```bash
 # After pulling prod DB and exporting config
 $ git status --short config/
- M config/default/core.entity_view_display.node.song.teaser.yml
+ M config/default/core.entity_view_display.node.article.teaser.yml
  M config/default/field.storage.group.field_member_count.yml
- D config/default/field.field.node.song.field_child_song_count.yml
- D config/default/field.storage.node.field_child_song_count.yml
- M config/default/views.view.songs.yml
+ D config/default/field.field.node.article.field_related_count.yml
+ D config/default/field.storage.node.field_related_count.yml
+ M config/default/views.view.articles.yml
 
 # The D files are our new feature - restore them
-$ git checkout HEAD -- config/default/field.field.node.song.field_child_song_count.yml \
-                       config/default/field.storage.node.field_child_song_count.yml
+$ git checkout HEAD -- config/default/field.field.node.article.field_related_count.yml \
+                       config/default/field.storage.node.field_related_count.yml
 
 # Verify
 $ git status --short config/
- M config/default/core.entity_view_display.node.song.teaser.yml
+ M config/default/core.entity_view_display.node.article.teaser.yml
  M config/default/field.storage.group.field_member_count.yml
- M config/default/views.view.songs.yml
+ M config/default/views.view.articles.yml
 
 # Our feature files are no longer in the diff - commit prod changes
 $ git add config/ && git commit -m "chore: sync config from production"
