@@ -61,12 +61,15 @@ cardinality) is NOT the same as adding a TTL — it keeps the freshness tags,
 so content still busts on write.
 
 **"The real path" means a real HTTP request, not `$entity->save()`.** In an
-ExistingSite (DTT) test, an in-process save inside the phpunit process does
-not reliably drain its cache-tag invalidations to the persisted `cachetags`
-table — the test's ad-hoc kernel boot never runs the transaction
-post-commit callbacks that do it. A warmed response then never busts, the
-freshness test fails, and the product is fine: you will chase cache
-metadata that was correct all along. Mutate over the app's actual write
+ExistingSite (DTT) test, an in-process save inside the phpunit process has
+been observed not to bust a response warmed over HTTP: the freshness test
+fails while the product, exercised across a real request boundary, is
+correct — and you will chase cache metadata that was right all along. The
+mechanism is not established: core defers tag invalidations made inside a
+transaction to a post-transaction callback and runs it in-process on root
+commit, so "callbacks never run" is not the explanation. (If you inspect
+the `cachetags` table while debugging, note it exists only with the
+database cache-tag checksum backend.) Mutate over the app's actual write
 path (e.g. JSON:API `POST`/`PATCH` with the session cookie +
 `X-CSRF-Token`), then re-fetch the cached surface over HTTP.
 

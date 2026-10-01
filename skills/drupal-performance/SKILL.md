@@ -268,21 +268,31 @@ bubbles up and makes the whole page per-user (see `references/caching-lessons.md
 
 ## Frozen asset URLs (browser cache)
 
-A JS/CSS fix that "works locally but not in prod", "works in incognito but
-not normally", or "keeps regressing" is often a **frozen asset URL**, not the
-code. A library that pins `version:` in `*.libraries.yml` is served as
-`?v=<that version>` forever; a production `drush cr` cannot bust browser
-caches for it, because the URL never changes.
+A JS fix that "works locally but not in prod", "works in incognito but not
+normally", or "keeps regressing" can be a **frozen asset URL**, not the code.
+The scope is narrow (per core's `JsCollectionRenderer`,
+`CssCollectionRenderer` and `AssetGroupSetHashTrait`):
 
-- **Diagnose:** fetch the prod page and read the asset's query string,
-  e.g. `curl -s https://<site>/<page> | grep -o '<asset>.js?[^"]*'`. If the
-  server already serves the fixed file, the stale copy is client-side.
-- **Fix:** drop the `version:` key so the URL carries Drupal's
-  cache-busting query string (which changes on cache rebuild), or ship
-  content-hashed filenames from a build step so a changed asset always gets
-  a new URL. Then rebuild caches on prod after deploy.
-- **Guard:** a test that asserts the library definitions you own carry no
-  pinned `version:`, so the pin can't come back.
+- **Unaggregated JS** (aggregation off, or a file with `preprocess: false`)
+  from a library that pins `version:` is served as `?v=<that version>`. That
+  URL changes only when the version string does, so a production `drush cr`
+  cannot bust browser caches for it.
+- **Unaggregated CSS** ignores the library version; it gets the
+  `asset.query_string` value, which is reset on every full cache clear.
+- **Aggregated assets** (the production default) get aggregate URLs hashed
+  from the files' contents, so a version pin cannot freeze them.
+
+- **Diagnose:** fetch the prod page and read the asset's URL and query
+  string, e.g. `curl -s https://<site>/<page> | grep -o '<asset>.js?[^"]*'`.
+  A `?v=<version>` on a file whose content changed means it is frozen; if
+  the server already serves the fixed file, the stale copy is client-side.
+- **Fix:** drop the `version:` key so unaggregated JS gets the
+  `asset.query_string` value (which changes on every full cache clear), let
+  the file be aggregated, or ship content-hashed filenames from a build step
+  so a changed asset always gets a new URL. Then rebuild caches on prod after
+  deploy.
+- **Guard:** a test that asserts the libraries you own that serve
+  unaggregated JS carry no pinned `version:`, so the pin can't come back.
 
 ## Database Query Optimization
 
