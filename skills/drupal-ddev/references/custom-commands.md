@@ -20,16 +20,19 @@ echo "Installing fresh Drupal site..."
 # Drop existing database
 drush sql-drop -y
 
-# Install Drupal
-drush site:install standard \
-  --site-name="My Site" \
-  --account-name=admin \
-  --account-pass=admin \
-  -y
-
-# Import config if exists
-if [ -d /var/www/html/config/default ]; then
-  drush config:import -y
+# Install Drupal. With an exported config directory, install FROM it:
+# a `site:install standard` followed by `config:import` fails, because the new
+# site's UUID never matches the exported system.site UUID
+# (SystemConfigSubscriber rejects the import).
+if [ -f /var/www/html/config/default/system.site.yml ]; then
+  drush site:install --existing-config \
+    --account-name=admin --account-pass=admin -y
+else
+  drush site:install standard \
+    --site-name="My Site" \
+    --account-name=admin \
+    --account-pass=admin \
+    -y
 fi
 
 # Clear cache
