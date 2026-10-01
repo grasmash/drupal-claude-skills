@@ -25,14 +25,20 @@ git commit -m "Update module_name to 3.0 with D11 compatibility patch"
 # 1. Scan for issues
 drush upgrade_status:analyze module_name
 
-# 2. Create info.yml patch if needed
-cd docroot/modules/contrib/module_name
-# Edit module.info.yml to add ^11
-git diff module.info.yml > ../../../patches/module-d11-info.patch
+# 2. Create info.yml patch if needed (run from the project root)
+MODULE_DIR=docroot/modules/contrib/module_name   # or web/modules/contrib/module_name
+git -C "$MODULE_DIR" init -q                     # contrib is not a git repo: temporary baseline
+git -C "$MODULE_DIR" add -A
+git -C "$MODULE_DIR" -c user.name=patch -c user.email=patch@localhost commit -qm pristine
+# Edit $MODULE_DIR/module_name.info.yml to add ^11
+git -C "$MODULE_DIR" diff > patches/module-d11-info.patch
+git -C "$MODULE_DIR" checkout -- .
+rm -rf "$MODULE_DIR/.git"
 
-# 3. Add patch to composer.json
+# 3. Add patch to composer.json, then record it in patches.lock.json
+composer patches-relock
 # 4. Apply
-composer install
+composer reinstall drupal/module_name
 drush cr
 
 # 5. Verify

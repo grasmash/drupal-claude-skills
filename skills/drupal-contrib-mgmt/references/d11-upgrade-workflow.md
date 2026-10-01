@@ -159,10 +159,18 @@ foreach ($roles as $role_id => $role) {
 
 ### Step 4: Create .info.yml Patches
 
+Composer-installed contrib is not a git repository, so take a pristine baseline in a temporary repo before editing. Run from the project root (contrib lives in `web/modules/contrib` or `docroot/modules/contrib` depending on the layout):
+
 ```bash
 # Create patch for contrib module
-cd docroot/modules/contrib/module_name
-git diff module.info.yml > /path/to/patches/module-d11-info.patch
+MODULE_DIR=docroot/modules/contrib/module_name   # or web/modules/contrib/module_name
+git -C "$MODULE_DIR" init -q                     # temporary repo = pristine baseline
+git -C "$MODULE_DIR" add -A
+git -C "$MODULE_DIR" -c user.name=patch -c user.email=patch@localhost commit -qm pristine
+# Edit $MODULE_DIR/module.info.yml: add ^11 to core_version_requirement
+git -C "$MODULE_DIR" diff > patches/module-d11-info.patch
+git -C "$MODULE_DIR" checkout -- .               # back to pristine; composer applies the patch
+rm -rf "$MODULE_DIR/.git"
 
 # Patch content:
 --- a/module.info.yml
@@ -195,7 +203,8 @@ git diff module.info.yml > /path/to/patches/module-d11-info.patch
 ```
 
 ```bash
-composer install
+composer patches-relock                 # v2 applies from patches.lock.json
+composer reinstall drupal/module_name   # re-installs and applies the patch
 drush updb -y
 drush cr
 ```

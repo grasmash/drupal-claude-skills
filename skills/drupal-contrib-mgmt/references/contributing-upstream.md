@@ -49,16 +49,16 @@ composer install  # Reinstalls from drupal.org
 - When done developing, always reinstall via composer to ensure clean state
 - Useful for fixing autoloader issues, adding features, or troubleshooting
 
-**Example**: Fixing recurly_commerce_api autoloader issue
+**Example**: Fixing an autoloader issue in example_module
 ```bash
 # Module needed composer.json autoload section
-cd /tmp/recurly_commerce_api
+cd /tmp/example_module
 # Edit composer.json to add autoload section
 git commit -m "Add PSR-4 autoload configuration"
 git push origin 1.0.x
 
 # Back in main project
-rm docroot/modules/contrib/recurly_commerce_api
+rm docroot/modules/contrib/example_module
 composer install  # Gets latest with fix
 drush cr
 ```
@@ -138,8 +138,8 @@ Use the standard drupal.org template with HTML formatting:
 ### Step 3: Clone Module and Set Up Fork
 
 ```bash
-# Clone the module repo (if not already cloned)
-cd ~/Sites
+# Clone the module repo (if not already cloned), outside the project
+cd <workspace-dir>
 git clone git@git.drupal.org:project/module_name.git module_name-contrib
 cd module_name-contrib
 
@@ -208,8 +208,8 @@ Issue #XXXXXXX: Short description (50 chars max)
 
 When contributing to a module you also use in your project:
 
-1. **Contrib Repo** (`~/Sites/module-contrib/`) - Clean checkout for developing and contributing
-2. **App Repo** (`~/Sites/your-app/`) - Uses composer patches to apply changes
+1. **Contrib Repo** (`<workspace-dir>/module-contrib/`) - Clean checkout for developing and contributing
+2. **App Repo** (`<project-root>/`) - Uses composer patches to apply changes
 
 **Benefits**:
 - Clean separation between contribution work and app usage
@@ -219,22 +219,23 @@ When contributing to a module you also use in your project:
 **Workflow**:
 ```bash
 # 1. Develop in contrib repo
-cd ~/Sites/module-contrib
+cd <workspace-dir>/module-contrib
 # Make changes...
 
 # 2. Generate patch
 git diff > feature-name.patch
 
 # 3. Copy to app and apply via composer
-cp feature-name.patch ~/Sites/your-app/patches/
+cp feature-name.patch <project-root>/patches/
 # Add to composer.json patches section
-cd ~/Sites/your-app
+cd <project-root>
+composer patches-relock   # composer-patches v2 applies from patches.lock.json
 composer reinstall drupal/module_name
 
 # 4. Test in app, iterate as needed
 
 # 5. When ready, commit and push from contrib repo
-cd ~/Sites/module-contrib
+cd <workspace-dir>/module-contrib
 git add -A && git commit -m "Issue #XXXXXXX: Description"
 git push fork-remote branch-name
 ```

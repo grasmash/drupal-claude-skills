@@ -29,10 +29,13 @@ cat >> composer.json <<'EOF'
 EOF
 
 # 4. Create .info.yml patch
-cd docroot/modules/contrib/entity_limit
-# Manually edit entity_limit.info.yml to add ^11 to core_version_requirement
-git diff entity_limit.info.yml > ../../../patches/entity_limit-d11-info.patch
-cd ../../..
+MODULE_DIR=docroot/modules/contrib/entity_limit   # or web/modules/contrib/entity_limit
+git -C "$MODULE_DIR" init -q && git -C "$MODULE_DIR" add -A   # contrib is not a git repo: temporary baseline
+git -C "$MODULE_DIR" -c user.name=patch -c user.email=patch@localhost commit -qm pristine
+# Manually edit $MODULE_DIR/entity_limit.info.yml to add ^11 to core_version_requirement
+git -C "$MODULE_DIR" diff > patches/entity_limit-d11-info.patch
+git -C "$MODULE_DIR" checkout -- . && rm -rf "$MODULE_DIR/.git"
+composer patches-relock   # v2 applies patches from patches.lock.json
 
 # 5. Backup database (major version upgrade!)
 drush sql:dump > backup-before-entity-limit-3x.sql

@@ -16,9 +16,13 @@ cat >> composer.json <<'EOF'
 EOF
 
 # 2. Create local .info.yml patch if needed
-cd docroot/modules/contrib/audiofield
-git diff audiofield.info.yml > ../../../patches/audiofield-d11-info.patch
-cd ../../..
+MODULE_DIR=docroot/modules/contrib/audiofield   # or web/modules/contrib/audiofield
+git -C "$MODULE_DIR" init -q && git -C "$MODULE_DIR" add -A   # contrib is not a git repo: temporary baseline
+git -C "$MODULE_DIR" -c user.name=patch -c user.email=patch@localhost commit -qm pristine
+# Edit $MODULE_DIR/audiofield.info.yml to add ^11 to core_version_requirement
+git -C "$MODULE_DIR" diff > patches/audiofield-d11-info.patch
+git -C "$MODULE_DIR" checkout -- . && rm -rf "$MODULE_DIR/.git"
+composer patches-relock   # v2 applies patches from patches.lock.json
 
 # 3. Update module
 composer require drupal/audiofield:^1.13 --with-all-dependencies

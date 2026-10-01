@@ -128,54 +128,46 @@ Key differences in 2.x:
 
 ### Verifying Patches Are Applied
 
-**THREE DIFFERENT PROBLEMS, ONE SCRIPT**:
+**THREE DIFFERENT PROBLEMS, ONE CHECK**:
 
-1. **Lock-sync staleness (the root cause)**: a patch is registered in `composer.json` `extra.patches` but never added to `patches.lock.json` because `composer patches-relock` was skipped. v2 applies from the lock on `composer install`, so the patch is silently a no-op on every clean install. The fix is the relock; the script's job is to *catch* the skip by asserting every local patch in `composer.json` is present in `patches.lock.json`.
+1. **Lock-sync staleness (the root cause)**: a patch is registered in `composer.json` `extra.patches` but never added to `patches.lock.json` because `composer patches-relock` was skipped. v2 applies from the lock on `composer install`, so the patch is silently a no-op on every clean install. The fix is the relock; the check's job is to *catch* the skip by asserting every local patch in `composer.json` is present in `patches.lock.json`.
 
-2. **Committed file drift**: a patch IS applied to the working tree, but the resulting contrib file change is never committed to git. Pantheon (and any platform that deploys from committed git state without running `composer install`) never sees it, so production silently runs un-patched code. Local dev looks fine. See CLAUDE.md "Contrib/Core Patch Policy" for context.
+2. **Committed file drift** (projects that commit contrib code): a patch IS applied to the working tree, but the resulting contrib file change is never committed to git. Any platform that deploys from committed git state without running `composer install` (Pantheon, for example) never sees it, so production silently runs un-patched code. Local dev looks fine.
 
 3. **Patch hash cache staleness**: even with the lock in sync, a stray reinstall or vendor update can skip re-applying. Rare next to (1) and (2), but the same materialized-file check catches it.
 
-**SOLUTION**: `scripts/verify-patches.sh`
+**SOLUTION**: the project should have a patch-verification script (for example `scripts/verify-patches.sh`; this skill does not ship one) that runs before every push and in CI. What it should do:
 
-```bash
-# Run manually (verifies committed state)
-./scripts/verify-patches.sh
-
-# Auto-reinstall affected modules to re-apply patches
-./scripts/verify-patches.sh --fix
-```
-
-**Behavior**:
-- Runs two checks. (1) **Lock-sync**: every local patch in `composer.json` `extra.patches` must also appear in `patches.lock.json` — catches the skipped `patches-relock`. (2) **Materialized-file**: the patched lines must be present in the committed contrib file — catches "patched but not committed".
-- Auto-derives the verification list from `composer.json` `extra.patches` — **no manual curation required**. Adding a patch entry is enough; the script picks it up automatically.
-- For each local patch (value starting with `patches/`), it parses all `+++ b/<path>` headers, extracts up to 5 distinctive added lines (≥ 8 non-whitespace chars, not a substring of any `-` line in the same patch), and greps the target file for them. Handles the `drupal/core` package's `core/` path-prefix quirk and is bash 3 compatible.
-- URL-based patches (`https://...`) are skipped with a notice — add a local mirror under `patches/` if the patch is critical.
-- Runs in CI **before** `composer install` in the `lint` job (`.github/workflows/test.yml`), so it validates the COMMITTED tree — not the post-install state. This is the ordering that matters.
+- **Lock-sync check**: every local patch in `composer.json` `extra.patches` must also appear in `patches.lock.json` — catches the skipped `patches-relock`.
+- **Materialized-file check** (projects that commit contrib code): the patched lines must be present in the committed contrib file — catches "patched but not committed".
+- Derive the verification list from `composer.json` `extra.patches` — **no manual curation**. Adding a patch entry should be enough for the check to pick it up.
+- For each local patch (value starting with `patches/`), parse all `+++ b/<path>` headers, extract a few distinctive added lines (e.g. up to 5 lines of ≥ 8 non-whitespace chars that are not a substring of any `-` line in the same patch), and grep the target file for them. Mind the `drupal/core` package's `core/` path prefix: core patches are rooted at the Drupal root (`b/core/lib/...`, applied with `-p2`), so map them to `<docroot>/core/...` rather than prefixing the package install path.
+- Skip URL-based patches (`https://...`) with a notice — add a local mirror under `patches/` if the patch is critical.
+- In CI, run it **before** `composer install`, so it validates the COMMITTED tree — not the post-install state. This is the ordering that matters.
 
 **Adding a new patch** (the relock step is the one everyone forgets):
 1. Drop the `.patch` file in `patches/`
 2. Register it in `composer.json` under `extra.patches`
 3. **Run `composer patches-relock`** — adds the patch to `patches.lock.json`. WITHOUT this, step 4's `composer install` applies nothing (v2 reads the lock, not `composer.json`).
-4. Run `composer install` to apply the patch to the working tree
-5. **`git add` and commit the modified contrib file** along with `composer.json`, `patches.lock.json`, and the new `.patch` file — platforms that deploy from git (Pantheon) can't apply patches on their own, so the committed contrib file must already be in its patched form
+4. Run `composer reinstall drupal/module_name` (or `composer patches-repatch`) to apply the patch to the working tree — v2 patches a package only when Composer installs or updates it, so a plain `composer install` does not re-patch a module that is already installed
+5. **`git add` and commit** `composer.json`, `patches.lock.json`, and the new `.patch` file. If the project commits contrib code, commit the modified contrib file too — platforms that deploy from git without running `composer install` can't apply patches on their own, so the committed contrib file must already be in its patched form
 6. **Write a behavior test for the patched functionality** (see below)
-7. Run `./scripts/verify-patches.sh` locally to sanity-check before pushing
-8. CI will re-run the same verification on every push
+7. Run the project's patch-verification check locally before pushing
+8. Have CI re-run the same verification on every push
 
-**Every patch ships a behavior test.** `verify-patches.sh` is structural: it proves the patch *lines* are present in the committed file, not that the patched code *behaves* correctly. A patch can be applied and still not fix anything (wrong hunk, upstream refactor moved the logic, a later patch undid it). The test is what makes the patch durable across module bumps:
+**Every patch ships a behavior test.** A patch-verification check is structural: it proves the patch *lines* are present in the committed file, not that the patched code *behaves* correctly. A patch can be applied and still not fix anything (wrong hunk, upstream refactor moved the logic, a later patch undid it). The test is what makes the patch durable across module bumps:
 - **Negative case**: exercise the exact edge condition the patch fixes. For a new patch, write this test first against the **unpatched** module and watch it fail for the reported reason — otherwise you have not proven it tests the bug.
 - **Positive case**: the normal path still works (no regression).
 - Place the test in the consuming custom module's `tests/` directory and reference the `.patch` file in the test's docblock, so whoever bumps the module can find it.
 - **Never bump a patched module whose patch has no behavior test.** Write the test first, then bump, then confirm it still passes (or that the patch is now upstream and can be dropped).
 
-**When `verify-patches.sh` reports MISSING in CI**:
+**When the verification reports a MISSING patch**:
 - Lock-sync failure → someone skipped `composer patches-relock` (step 3). Fix: run it, commit `patches.lock.json`, push.
-- Materialized-file failure → someone forgot to commit the patched contrib file (step 5). Fix: `composer patches-relock && composer install` locally, `git add docroot/modules/contrib docroot/core patches.lock.json`, commit, and push.
+- Materialized-file failure → someone forgot to commit the patched contrib file (step 5). Fix: `composer patches-relock && composer patches-repatch` locally, `git add` the patched contrib/core directories (e.g. `web/modules/contrib web/core` or `docroot/modules/contrib docroot/core`) plus `patches.lock.json`, commit, and push.
 
 **Caveats**:
-- "Combined patches" (one `.patch` file with multiple `+++ b/<same_file>` headers, usually squashed commits with conflicting hunks) may slip through — the script accepts any distinctive added line, so a partial match passes. If you see a patch land in `patches/` with multiple hunks revising the same file, regenerate it as a clean single-commit diff instead.
-- PHPCS: committing patched contrib files can trip `grumphp`'s pre-commit `phpcs` task on pre-existing sniff violations in upstream code. `grumphp.yml` already ignores `docroot/modules/contrib`, `docroot/core`, and `docroot/libraries` for this task — don't remove those ignores.
+- "Combined patches" (one `.patch` file with multiple `+++ b/<same_file>` headers, usually squashed commits with conflicting hunks) may slip through — a check that accepts any distinctive added line passes on a partial match. If you see a patch land in `patches/` with multiple hunks revising the same file, regenerate it as a clean single-commit diff instead.
+- PHPCS: committing patched contrib files can trip a pre-commit `phpcs` task (e.g. GrumPHP) on pre-existing sniff violations in upstream code. Configure that task to ignore the contrib, core, and libraries directories rather than "fixing" upstream code.
 
 ### Finding Patches
 

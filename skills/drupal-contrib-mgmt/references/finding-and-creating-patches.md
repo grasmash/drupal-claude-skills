@@ -105,19 +105,19 @@ composer install
 **IMPORTANT**: Always create patches from a separate clone of the contrib module repo, not from the installed version in your project.
 
 ```bash
-# Step 1: Clone the module repo to a separate directory (one-time setup)
-cd ~/Sites
+# Step 1: Clone the module repo to a separate directory OUTSIDE the project (one-time setup)
+cd <workspace-dir>    # e.g. the directory that contains <project-root>
 git clone git@git.drupal.org:project/module_name.git module_name-contrib
 
 # Step 2: Checkout the exact version you have installed
-cd ~/Sites/module_name-contrib
+cd <workspace-dir>/module_name-contrib
 git checkout 1.0.3  # Match your installed version
 
 # Step 3: Make your changes in the contrib repo
 # Edit files as needed...
 
 # Step 4: Generate the patch using git diff
-git diff > ~/Sites/your-project/patches/module_name-custom-fix.patch
+git diff > <project-root>/patches/module_name-custom-fix.patch
 
 # Step 5: Add to composer.json
 {
@@ -130,8 +130,18 @@ git diff > ~/Sites/your-project/patches/module_name-custom-fix.patch
   }
 }
 
-# Step 6: Apply via composer
+# Step 6: Add the patch to patches.lock.json (composer-patches v2)
+cd <project-root>
+composer patches-relock
+# v2 applies patches from patches.lock.json, NOT from composer.json, on
+# install/reinstall — skip this and the patch is silently dropped on every
+# clean install (CI, teammates, deploys).
+
+# Step 7: Apply via composer
 composer reinstall drupal/module_name
+
+# Step 8: Commit composer.json, patches.lock.json and the .patch file
+git add composer.json patches.lock.json patches/module_name-custom-fix.patch
 ```
 
 **Why use a separate repo?**
