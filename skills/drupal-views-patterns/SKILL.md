@@ -28,16 +28,20 @@ Every Views display has a **results cache** (the SQL result) and an
   cache tag is invalidated. Use for surfaces that must update **immediately**
   when content changes (a newly published item must appear). The "immediate"
   freshness bucket.
-- **`Time`** — cached for a fixed TTL regardless of content changes. Use when
-  bounded staleness is acceptable AND the entity tags churn too fast for
-  `Tag` to help (e.g. a leaderboard over entities whose counter fields are
-  bulk-updated every few minutes — `Tag` would re-render it cold for
-  everyone constantly). The "hours" bucket.
+- **`Time`** — the same tag invalidation as `Tag`, PLUS a TTL. In core
+  (11.4) `Time` inherits `CachePluginBase::cacheSet()`, which stores results
+  with `getCacheTags()`; the lifespan only adds an expiry. So `Time` bounds
+  staleness from things tags cannot see (a relative-date filter, data from
+  outside the entity system); it does **not** stop tag churn. A leaderboard
+  over entities whose counters are bulk-saved every few minutes stays cold
+  under `Time` too. Fix that at the write: keep counter-only updates from
+  busting the list tag (`drupal-performance` references/caching-lessons.md §5).
 - **`None`** — recomputed every request. Almost always wrong for a public
   list.
 
-See `drupal-performance`'s `references/caching-lessons.md` for the freshness-bucket framework (immediate /
-minutes / hours) and the tag-vs-TTL asymmetry.
+Tags, contexts and invalidation in general live in the `drupal-performance`
+skill; see its `references/caching-lessons.md` for the freshness-bucket
+framework (immediate / minutes / hours) and the tag-vs-TTL asymmetry.
 
 ### A2. Exposed filters add a `url.query_args` cache context — design around it
 An exposed filter makes the result vary by query string, so Views adds
