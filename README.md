@@ -72,7 +72,7 @@ Then add the agent workflow guide from [AGENTS.md](AGENTS.md) to your project's 
 
 | Skill | Description |
 |-------|-------------|
-| **[drupal-at-your-fingertips](skills/drupal-at-your-fingertips/)** | 50+ Drupal topics from [Selwyn Polit's book](https://drupalatyourfingertips.com) — services, hooks, entities, forms, theming, caching, testing |
+| **[drupal-at-your-fingertips](skills/drupal-at-your-fingertips/)** | Core API patterns from [Selwyn Polit's book](https://drupalatyourfingertips.com) — 14 topics in depth (services, hooks, events, plugins, entities, forms, routes, Twig, caching, AJAX, queries, config, Paragraphs, DTT), the other 39 chapters linked online |
 | **[drupal-config-mgmt](skills/drupal-config-mgmt/)** | Configuration management — safe import/export, config splits (complete vs partial), environment syncing, merge workflows |
 | **[drupal-config-reconcile](skills/drupal-config-reconcile/)** | Resolve config drift item-by-item against a deployed env — import vs export vs skip, verify with the import transformer, never write to prod |
 | **[drupal-contrib-mgmt](skills/drupal-contrib-mgmt/)** | Contrib module management — Composer updates, composer-patches v2 (`patches.lock.json` + relock), Drupal 11 compatibility, drupal.org workflow |
