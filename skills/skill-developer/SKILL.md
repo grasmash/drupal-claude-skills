@@ -370,6 +370,21 @@ Test skill activation by trying prompts that should and should not trigger the s
 
 ---
 
+## Reference Files
+
+Deep-dive documentation for the hook-based activation pattern described above
+(the advanced, optional architecture — description-based activation needs none
+of this):
+
+- [references/TRIGGER_TYPES.md](references/TRIGGER_TYPES.md) - Keyword, intent, file-path, and content trigger types in detail
+- [references/SKILL_RULES_REFERENCE.md](references/SKILL_RULES_REFERENCE.md) - Complete skill-rules.json schema
+- [references/HOOK_MECHANISMS.md](references/HOOK_MECHANISMS.md) - How UserPromptSubmit/Stop hooks work
+- [references/TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) - Debugging skill activation
+- [references/PATTERNS_LIBRARY.md](references/PATTERNS_LIBRARY.md) - Reusable trigger/rule patterns
+- [references/ADVANCED.md](references/ADVANCED.md) - Advanced topics
+
+---
+
 ## Related Files
 
 **Configuration:**
@@ -377,3 +392,11 @@ Test skill activation by trying prompts that should and should not trigger the s
 
 **Specification:**
 - https://agentskills.io/specification - Agent Skills Spec
+
+---
+
+## Attribution
+
+The hook-based activation architecture and the reference files above are
+adapted from [diet103/claude-code-infrastructure-showcase](https://github.com/diet103/claude-code-infrastructure-showcase)
+(MIT License).

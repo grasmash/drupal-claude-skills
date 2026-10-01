@@ -92,14 +92,14 @@ ddev launch     # Open site in browser
 
 ```yaml
 name: myproject
-type: drupal10
+type: drupal11
 docroot: web
 php_version: "8.3"
 webserver_type: nginx-fpm
 database:
   type: mariadb
   version: "10.6"
-nodejs_version: "20"
+nodejs_version: "24"
 
 # Additional services
 additional_services:
@@ -124,7 +124,7 @@ performance_mode: mutagen  # For macOS
 mkdir myproject && cd myproject
 
 # Initialize DDEV
-ddev config --project-type=drupal10 --docroot=web --php-version=8.3
+ddev config --project-type=drupal11 --docroot=web --php-version=8.3
 
 # Install Drupal via Composer
 ddev composer create drupal/recommended-project
@@ -168,12 +168,13 @@ ddev drush cr
 ddev launch
 ```
 
-### Database Sync from Pantheon
+### Database Sync from a Remote/Production Environment
 
 ```bash
-# Get latest backup from Pantheon
-terminus backup:create site.env --element=db
-terminus backup:get site.env --element=db --to=backup.sql.gz
+# Get latest backup from your hosting platform, e.g.:
+#   Pantheon: terminus backup:create/backup:get
+#   Acquia:   acli pull:database
+#   Generic:  drush @alias sql:dump
 
 # Import to local
 ddev import-db --file=backup.sql.gz
@@ -262,6 +263,19 @@ performance_mode: mutagen
 ddev restart
 ```
 
+**Measured, not assumed:** the macOS bind mount, not
+contention, is what's slow. A 7-test Kernel class deconfounded to `none`+idle
+597s vs `mutagen`+idle 3.06s — a ~195x mount effect vs. only ~1.6x from
+removing multi-agent contention. `performance_mode: mutagen` is load-bearing;
+do not flip it off casually. If it misbehaves: an empty/corrupt mutagen
+volume makes `ddev start` fail before syncing — `docker volume rm
+<project>_mutagen` is safe (code-only; the DB volume is separate). Check
+`ddev debug mutagen sync list` when local and container contents diverge.
+Recovery through the volume/daemon (below) should have exactly ONE owner at
+a time — if multiple agent sessions or terminals share the same DDEV
+instance, serialize `ddev start`/`ddev mutagen reset` behind a single lock;
+ownership rotating mid-recovery manufactures mangled containers.
+
 ### NFS Mount (Alternative for macOS)
 
 ```yaml
@@ -282,6 +296,37 @@ database:
 innodb_buffer_pool_size = 512M
 innodb_log_file_size = 128M
 ```
+
+---
+
+## PHPUnit Test Performance
+
+### Fast Bootstrap
+
+Stock Drupal core's PHPUnit bootstrap does a full-docroot-tree class scan on every
+invocation — 76s of cold CLI parse before a single test runs. A generated,
+project-specific bootstrap (e.g. a `scripts/phpunit-bootstrap.php` with the
+PSR-4 namespace map pre-computed, no scan) cuts that to 0.47s; single-test
+wall clock drops 89s → ~5s. Regenerate it when a module's namespace layout
+changes, and prove parity by diffing the full test-ID list old vs. new
+bootstrap (must be byte-identical).
+
+### Run the Smallest Sufficient Scope
+
+Run the smallest sufficient test scope per change (single test, then single
+class); save full-suite runs for batch close. If multiple agent sessions
+share one local DDEV instance, serialize container-disruptive or
+memory-heavy operations (`ddev restart`, `drush cr`, phpunit, Playwright,
+theme builds) behind a lock — N agents hitting one Docker VM concurrently
+means OOM, Mutagen desync, and stale-code WSODs.
+
+### Where to Run Kernel Suites
+
+Kernel-test IO is dominated by the macOS bind mount, not the database driver.
+SQLite (`SIMPLETEST_DB=sqlite://...`) is a verified-compatible KernelTestBase
+backend, but it does NOT fix mount IO — a secondary lever, not the fix. If
+Kernel-heavy suites get slow locally, prefer running them in CI rather than
+laptop-only runs.
 
 ---
 
@@ -427,6 +472,81 @@ ddev restart
 
 This configuration applies to both web and CLI contexts since DDEV copies `.ddev/php/*.ini` files to both `/etc/php/[version]/cli/conf.d/` and `/etc/php/[version]/fpm/conf.d/`.
 
+### Interrupted `ddev composer install` Leaves Phantom-Installed Packages (Patches Never Applied)
+
+If `ddev composer install`/`update` is killed mid-run (Docker OOM exit 137, host timeout, crash), Composer may have already recorded the package as installed before the kill — so the NEXT `composer install` reports **"Nothing to install, update or remove"** and composer-patches never applies that package's patches. The result is a half-materialized contrib tree that produces impossible-looking runtime errors (e.g. DI `ServiceCircularReferenceException`s, TypeErrors from an unpatched constructor) that do NOT reproduce once the tree is repaired.
+
+**Diagnose**:
+```bash
+# Verify patch application (a verify-patches script if your project has one,
+# or spot-check a known-patched file in the vendored tree)
+ddev composer install                # says "Nothing to install" despite the missing patches
+```
+
+**Fix** — force a clean reinstall of the affected package (re-applies its patches):
+```bash
+ddev composer reinstall drupal/<pkg>
+```
+
+**Rule**: after ANY interrupted composer run, treat the whole package tree as suspect. Reinstall the packages that were mid-flight, re-verify patches, and only THEN debug remaining errors — the error you saw during the broken window may already be gone. Check error-log timestamps: confirm a fatal reproduces NOW before engineering a fix for it.
+
+### Timeout-Killed `ddev drush` Commands Orphan In-Container Processes
+
+Killing the host-side `ddev drush ...` process (Ctrl-C, tool timeout) does NOT kill the php process inside the web container. Orphans accumulate, contend for CPU, and make every subsequent drush bootstrap crawl (10+ minutes for `drush cr`/`updb`/`updatedb:status` — looks like a hang, is actually starvation).
+
+**Diagnose / clean up**:
+```bash
+ddev exec "ps aux | grep -v grep | grep -E 'vendor/bin/drush|php /var/www'"
+ddev exec "pkill -f 'vendor/bin/drush'"
+```
+
+**Two corollaries**:
+1. Run long drush operations (`updb` on a big upgrade, cold `cr`) ONCE, in the background, with a generous timeout — do not fire repeated shorter attempts; each kill adds another orphan.
+2. A "hung then killed" `updb` may have already completed its real work — update hooks are recorded per-hook. Before re-running or panicking, check what actually executed:
+```bash
+ddev mysql -e "SELECT value FROM key_value WHERE collection='system.schema' AND name='<module>'"
+ddev mysql -N -e "SELECT value FROM key_value WHERE collection='post_update' AND name='existing_updates'" | grep -o "<module>_post_update_[a-z0-9_]*"
+```
+
+### Docker Engine Wedge (Check Before Iterating on DDEV)
+
+phpunit exits 137, background jobs die mid-run, `ddev exec` re-triggers full
+image rebuilds, or every `ddev start` hits "container name already in use" —
+looks like a DDEV problem but is often the Docker Desktop **engine** crashed
+underneath still-resident app processes. Check this FIRST:
+
+```bash
+timeout 5 docker version   # hangs on the Server section -> engine is dead
+docker ps                  # if this responds while `docker version` hangs, engine is wedged
+```
+
+**Fix**: `killall -9 com.docker.backend && open -a Docker`, poll `docker ps`
+until it responds, then `ddev start`. Don't keep iterating on ddev-level
+fixes (poweroff/mutagen reset/etc.) while the engine itself is down — none
+of them can succeed.
+
+### Post-Recovery 404s With Route-Discovery Warnings
+
+A 404 with route-discovery warnings right after a recovery (Docker restart,
+mutagen reset, core update) that `ddev drush cr` does not fix is usually an
+APCu-stale compiled container: php-fpm's opcode cache still holds pre-change
+code even though `cache_container` in the DB is fresh. **Fix**: `docker
+restart ddev-<project>-web` (forces fresh APCu) — not another cache clear.
+
+### Router TLS Reset While Containers Report Healthy
+
+`curl` to `https://<project>.ddev.site` fails instantly with exit 35 ("Connection reset by peer" during TLS handshake) even though `ddev describe` shows everything OK and `docker ps` says `ddev-router` is healthy. The app is fine — the router is wedged.
+
+**Discriminate app vs router** (bypasses the router entirely):
+```bash
+ddev exec "curl -s -o /dev/null -w '%{http_code}' http://localhost/<path>"
+```
+
+**Fix**:
+```bash
+docker restart ddev-router
+```
+
 ### Docker Desktop overlay2 I/O Errors
 
 If Docker Desktop gets into a bad state producing overlay2 or containerd I/O errors such as:
@@ -439,6 +559,12 @@ Error response from daemon: open /var/lib/docker/overlay2/...: input/output erro
 ```
 
 A normal quit and restart of Docker Desktop is **not sufficient**. You must **force quit ALL Docker processes** (via Activity Monitor or `killall -9 Docker` / `killall -9 com.docker.hyperkit`), then relaunch Docker Desktop. Only a full force quit clears the corrupted state.
+
+**"readdirent bad message" variant**: signals VM-disk corruption at the
+container-metadata level, not a transient overlay2 hiccup — repeated `ddev
+start` will not fix it. Quarantine the corrupted container's metadata
+directory instead of looping restarts (enter an alpine container via
+`nsenter` and `mv` the offending `/var/lib/docker/containers/<id>` dir aside).
 
 ### Unhealthy Containers / Mutagen Sync Hanging
 
@@ -481,6 +607,14 @@ ddev mutagen monitor        # Real-time sync progress
 docker inspect --format "{{ json .State.Health }}" ddev-<project>-web  # Container health
 ```
 
+### Disk Usage: Don't Trust `ls` or `du`
+
+`ls -la` reports the logical size of sparse files (e.g. `Docker.raw`), which
+can be far larger than what's actually consumed on disk; `du` over-reports on
+APFS because it double-counts copy-on-write clones shared between snapshots.
+Neither answers "how much space would this operation actually cost/free."
+Trust only `df` deltas taken immediately before and after the operation.
+
 ---
 
 ## Multi-Project Management
@@ -499,11 +633,23 @@ ddev delete <project-name>
 ddev delete --omit-snapshot --yes <project-name>
 ```
 
+### Agent Worktree Cleanup
+
+Multi-agent workflows that dispatch via `git worktree` accumulate one
+directory per agent under `.claude/worktrees/` and nothing removes them on
+its own — left unmanaged this is unbounded disk growth (one project found
+46GB of stale worktrees in a single session). A SessionStart "worktree
+janitor" hook can sweep entries that are unlocked, old
+enough, and either clean or dirty with only junk files; anything with real
+tracked-file changes is left alone and logged, never bulldozed. Never `rm -rf`
+a worktree by hand — use `git worktree remove` (it refuses on genuine dirty
+state, which is the safety you want). Executors that spin up their own
+worktree should clean it up themselves when done.
+
 ---
 
 ## Related Skills
 
-- @drupal-pantheon - Deploy to Pantheon from DDEV
 - @drupal-config-mgmt - Config management workflows
 - @drupal-contrib-mgmt - Module management with Composer
 - @drupal-at-your-fingertips - General Drupal patterns
