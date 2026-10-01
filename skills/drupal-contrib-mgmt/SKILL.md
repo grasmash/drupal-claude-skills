@@ -1,9 +1,11 @@
 ---
 name: drupal-contrib-mgmt
-description: Comprehensive guide for managing Drupal contributed modules via Composer, including updates, patches, version compatibility, and Drupal 11 upgrades. Use when updating modules or resolving dependency issues.
+description: Manages Drupal contributed modules via Composer - module updates and major-version upgrades, cweagans/composer-patches v2 (patches.lock.json, composer patches-relock, verifying patches are applied), mglaman/composer-drupal-lenient, Drupal 11 compatibility checks with upgrade_status, committing an optimized vendor/ autoloader, and contributing fixes back to drupal.org via issue forks and merge requests. Use when updating or upgrading contrib modules, applying, finding or creating patches, a patch fails or keeps regressing after composer install, resolving Composer dependency or drupal/core version conflicts, checking Drupal 11 readiness or deprecations, or contributing to a drupal.org issue queue.
 ---
 
 # Drupal Contrib Module Management
+
+Use this skill for any Composer-managed contrib work: updating a module, adding or debugging a patch, unblocking a version constraint, preparing for Drupal 11, or pushing a fix upstream. The core update workflow and the patch rules below apply on every use; task-specific detail lives in `references/` (see the table at the end).
 
 ## Core Update Workflow
 
@@ -41,78 +43,7 @@ When upgrading to a new major version (e.g., 2.x → 3.x):
 
 ## Checking Drupal 11 Compatibility
 
-**Three methods to check if a module is D11 compatible** (in order of preference):
-
-### Method 1: Check .info.yml File (Fastest, Most Reliable)
-
-```bash
-# Check the module's .info.yml file for core_version_requirement
-cat docroot/modules/contrib/MODULE_NAME/MODULE_NAME.info.yml | grep core_version_requirement
-```
-
-**What to look for**:
-```yaml
-core_version_requirement: ^9.5 || ^10 || ^11     # ✅ D11 compatible
-core_version_requirement: ^8 || ^9 || ^10 || ^11  # ✅ D11 compatible
-core_version_requirement: ^9 || ^10                # ❌ Not D11 compatible yet
-```
-
-**Example**:
-```bash
-$ cat docroot/modules/contrib/admin_toolbar/admin_toolbar.info.yml | grep core_version
-core_version_requirement: ^9.5 || ^10 || ^11
-# ✅ This module declares D11 support!
-```
-
-### Method 2: Use Composer Commands (Works Before Installing)
-
-```bash
-# Check what versions are available and their constraints
-composer show drupal/MODULE_NAME --all | grep -A5 "^versions"
-
-# Check currently installed version
-composer show drupal/MODULE_NAME | grep versions
-```
-
-**What to look for**:
-- Version number (e.g., 3.6.2)
-- Check Drupal.org for release notes mentioning D11
-
-### Method 3: Check Drupal.org Project Page
-
-Only use as fallback when above methods aren't conclusive.
-
-```
-https://www.drupal.org/project/MODULE_NAME
-```
-
-Look for:
-- Latest release notes mentioning "Drupal 11"
-- Module page header showing D11 compatibility badge
-- Issue queue for D11 compatibility issues
-
-**Important Notes**:
-- ⚠️ Module may declare D11 support but still have deprecation warnings
-- ⚠️ upgrade_status warnings don't mean module is incompatible
-- ⚠️ "Check manually" status often means runtime version checks (false positive)
-- ✅ If .info.yml declares `^11` support, module maintainer says it works
-
-**Real-World Examples**:
-
-```bash
-# admin_toolbar - Already D11 compatible
-$ cat docroot/modules/contrib/admin_toolbar/admin_toolbar.info.yml | grep core_version
-core_version_requirement: ^9.5 || ^10 || ^11
-
-# But upgrade_status shows warnings about _drupal_flush_css_js()
-# This is a FALSE POSITIVE - module handles it with version checks
-
-# audiofield - Already D11 compatible
-$ cat docroot/modules/contrib/audiofield/audiofield.info.yml | grep core_version
-core_version_requirement: ^8 || ^9 || ^10 || ^11
-
-# Has deprecation warnings but maintainer declares D11 support
-```
+Three methods (`.info.yml`, Composer, drupal.org) and the full upgrade_status workflow: see [references/d11-upgrade-workflow.md](references/d11-upgrade-workflow.md).
 
 ## Drupal Lenient Plugin
 
@@ -197,54 +128,46 @@ Key differences in 2.x:
 
 ### Verifying Patches Are Applied
 
-**THREE DIFFERENT PROBLEMS, ONE SCRIPT**:
+**THREE DIFFERENT PROBLEMS, ONE CHECK**:
 
-1. **Lock-sync staleness (the root cause)**: a patch is registered in `composer.json` `extra.patches` but never added to `patches.lock.json` because `composer patches-relock` was skipped. v2 applies from the lock on `composer install`, so the patch is silently a no-op on every clean install. The fix is the relock; the script's job is to *catch* the skip by asserting every local patch in `composer.json` is present in `patches.lock.json`.
+1. **Lock-sync staleness (the root cause)**: a patch is registered in `composer.json` `extra.patches` but never added to `patches.lock.json` because `composer patches-relock` was skipped. v2 applies from the lock on `composer install`, so the patch is silently a no-op on every clean install. The fix is the relock; the check's job is to *catch* the skip by asserting every local patch in `composer.json` is present in `patches.lock.json`.
 
-2. **Committed file drift**: a patch IS applied to the working tree, but the resulting contrib file change is never committed to git. Pantheon (and any platform that deploys from committed git state without running `composer install`) never sees it, so production silently runs un-patched code. Local dev looks fine. See CLAUDE.md "Contrib/Core Patch Policy" for context.
+2. **Committed file drift** (projects that commit contrib code): a patch IS applied to the working tree, but the resulting contrib file change is never committed to git. Any platform that deploys from committed git state without running `composer install` (Pantheon, for example) never sees it, so production silently runs un-patched code. Local dev looks fine.
 
 3. **Patch hash cache staleness**: even with the lock in sync, a stray reinstall or vendor update can skip re-applying. Rare next to (1) and (2), but the same materialized-file check catches it.
 
-**SOLUTION**: `scripts/verify-patches.sh`
+**SOLUTION**: the project should have a patch-verification script (for example `scripts/verify-patches.sh`; this skill does not ship one) that runs before every push and in CI. What it should do:
 
-```bash
-# Run manually (verifies committed state)
-./scripts/verify-patches.sh
-
-# Auto-reinstall affected modules to re-apply patches
-./scripts/verify-patches.sh --fix
-```
-
-**Behavior**:
-- Runs two checks. (1) **Lock-sync**: every local patch in `composer.json` `extra.patches` must also appear in `patches.lock.json` — catches the skipped `patches-relock`. (2) **Materialized-file**: the patched lines must be present in the committed contrib file — catches "patched but not committed".
-- Auto-derives the verification list from `composer.json` `extra.patches` — **no manual curation required**. Adding a patch entry is enough; the script picks it up automatically.
-- For each local patch (value starting with `patches/`), it parses all `+++ b/<path>` headers, extracts up to 5 distinctive added lines (≥ 8 non-whitespace chars, not a substring of any `-` line in the same patch), and greps the target file for them. Handles the `drupal/core` package's `core/` path-prefix quirk and is bash 3 compatible.
-- URL-based patches (`https://...`) are skipped with a notice — add a local mirror under `patches/` if the patch is critical.
-- Runs in CI **before** `composer install` in the `lint` job (`.github/workflows/test.yml`), so it validates the COMMITTED tree — not the post-install state. This is the ordering that matters.
+- **Lock-sync check**: every local patch in `composer.json` `extra.patches` must also appear in `patches.lock.json` — catches the skipped `patches-relock`.
+- **Materialized-file check** (projects that commit contrib code): the patched lines must be present in the committed contrib file — catches "patched but not committed".
+- Derive the verification list from `composer.json` `extra.patches` — **no manual curation**. Adding a patch entry should be enough for the check to pick it up.
+- For each local patch (value starting with `patches/`), parse all `+++ b/<path>` headers, extract a few distinctive added lines (e.g. up to 5 lines of ≥ 8 non-whitespace chars that are not a substring of any `-` line in the same patch), and grep the target file for them. Mind the `drupal/core` package's `core/` path prefix: core patches are rooted at the Drupal root (`b/core/lib/...`, applied with `-p2`), so map them to `<docroot>/core/...` rather than prefixing the package install path.
+- Skip URL-based patches (`https://...`) with a notice — add a local mirror under `patches/` if the patch is critical.
+- In CI, run it **before** `composer install`, so it validates the COMMITTED tree — not the post-install state. This is the ordering that matters.
 
 **Adding a new patch** (the relock step is the one everyone forgets):
 1. Drop the `.patch` file in `patches/`
 2. Register it in `composer.json` under `extra.patches`
 3. **Run `composer patches-relock`** — adds the patch to `patches.lock.json`. WITHOUT this, step 4's `composer install` applies nothing (v2 reads the lock, not `composer.json`).
-4. Run `composer install` to apply the patch to the working tree
-5. **`git add` and commit the modified contrib file** along with `composer.json`, `patches.lock.json`, and the new `.patch` file — platforms that deploy from git (Pantheon) can't apply patches on their own, so the committed contrib file must already be in its patched form
+4. Run `composer reinstall drupal/module_name` (or `composer patches-repatch`) to apply the patch to the working tree — v2 patches a package only when Composer installs or updates it, so a plain `composer install` does not re-patch a module that is already installed
+5. **`git add` and commit** `composer.json`, `patches.lock.json`, and the new `.patch` file. If the project commits contrib code, commit the modified contrib file too — platforms that deploy from git without running `composer install` can't apply patches on their own, so the committed contrib file must already be in its patched form
 6. **Write a behavior test for the patched functionality** (see below)
-7. Run `./scripts/verify-patches.sh` locally to sanity-check before pushing
-8. CI will re-run the same verification on every push
+7. Run the project's patch-verification check locally before pushing
+8. Have CI re-run the same verification on every push
 
-**Every patch ships a behavior test.** `verify-patches.sh` is structural: it proves the patch *lines* are present in the committed file, not that the patched code *behaves* correctly. A patch can be applied and still not fix anything (wrong hunk, upstream refactor moved the logic, a later patch undid it). The test is what makes the patch durable across module bumps:
+**Every patch ships a behavior test.** A patch-verification check is structural: it proves the patch *lines* are present in the committed file, not that the patched code *behaves* correctly. A patch can be applied and still not fix anything (wrong hunk, upstream refactor moved the logic, a later patch undid it). The test is what makes the patch durable across module bumps:
 - **Negative case**: exercise the exact edge condition the patch fixes. For a new patch, write this test first against the **unpatched** module and watch it fail for the reported reason — otherwise you have not proven it tests the bug.
 - **Positive case**: the normal path still works (no regression).
 - Place the test in the consuming custom module's `tests/` directory and reference the `.patch` file in the test's docblock, so whoever bumps the module can find it.
 - **Never bump a patched module whose patch has no behavior test.** Write the test first, then bump, then confirm it still passes (or that the patch is now upstream and can be dropped).
 
-**When `verify-patches.sh` reports MISSING in CI**:
+**When the verification reports a MISSING patch**:
 - Lock-sync failure → someone skipped `composer patches-relock` (step 3). Fix: run it, commit `patches.lock.json`, push.
-- Materialized-file failure → someone forgot to commit the patched contrib file (step 5). Fix: `composer patches-relock && composer install` locally, `git add docroot/modules/contrib docroot/core patches.lock.json`, commit, and push.
+- Materialized-file failure → someone forgot to commit the patched contrib file (step 5). Fix: `composer patches-relock && composer patches-repatch` locally, `git add` the patched contrib/core directories (e.g. `web/modules/contrib web/core` or `docroot/modules/contrib docroot/core`) plus `patches.lock.json`, commit, and push.
 
 **Caveats**:
-- "Combined patches" (one `.patch` file with multiple `+++ b/<same_file>` headers, usually squashed commits with conflicting hunks) may slip through — the script accepts any distinctive added line, so a partial match passes. If you see a patch land in `patches/` with multiple hunks revising the same file, regenerate it as a clean single-commit diff instead.
-- PHPCS: committing patched contrib files can trip `grumphp`'s pre-commit `phpcs` task on pre-existing sniff violations in upstream code. `grumphp.yml` already ignores `docroot/modules/contrib`, `docroot/core`, and `docroot/libraries` for this task — don't remove those ignores.
+- "Combined patches" (one `.patch` file with multiple `+++ b/<same_file>` headers, usually squashed commits with conflicting hunks) may slip through — a check that accepts any distinctive added line passes on a partial match. If you see a patch land in `patches/` with multiple hunks revising the same file, regenerate it as a clean single-commit diff instead.
+- PHPCS: committing patched contrib files can trip a pre-commit `phpcs` task (e.g. GrumPHP) on pre-existing sniff violations in upstream code. Configure that task to ignore the contrib, core, and libraries directories rather than "fixing" upstream code.
 
 ### Finding Patches
 
@@ -261,151 +184,9 @@ Key differences in 2.x:
 3. Look for updated patch in latest comments
 4. Update composer.json with new patch URL
 
-### Debugging Errors: Find Patches BEFORE Creating
+### Debugging Errors and Creating Local Patches
 
-**CRITICAL WORKFLOW**: When encountering Drupal errors, ALWAYS search for existing patches before creating your own.
-
-#### Step 1: Extract the Exact Error Signature
-
-From the error message, extract the **exact** error string:
-
-```bash
-# Example error:
-TypeError: Unsupported operand types: array + null in Drupal\field_ui\Form\EntityViewDisplayEditForm
-
-# Extract this part:
-"Unsupported operand types: array + null"
-```
-
-#### Step 2: Search Drupal.org Issue Queue FIRST
-
-```bash
-# Method 1: Direct URL search (BEST)
-https://www.drupal.org/project/drupal/issues?text=Unsupported+operand+types+array+null
-
-# Method 2: Search with file + line number
-https://www.drupal.org/project/drupal/issues?text=EntityViewDisplayEditForm+line+166
-```
-
-**What to look for in search results**:
-- Issues with status: "Needs review" or "Reviewed & tested by the community" (RTBC)
-- Recent activity (check dates)
-- Patch files in comments (look for `.patch` attachments)
-- Merge requests (look for `!13611` references)
-
-#### Step 3: Use WebFetch to Get Patch Details
-
-```bash
-# Once you find the issue, fetch details:
-WebFetch(https://www.drupal.org/project/drupal/issues/3552531)
-```
-
-Look for:
-- **Patch file URLs**: Usually `https://www.drupal.org/files/issues/YYYY-MM-DD/filename.patch`
-- **Merge request numbers**: E.g., `!13611` → `https://git.drupalcode.org/project/drupal/-/merge_requests/13611`
-- **Issue status**: RTBC means ready to use
-
-#### Step 4: Download and Apply Official Patch
-
-```bash
-# Download to patches directory
-curl -O https://www.drupal.org/files/issues/2025-10-16/field-ui--unsupported-operand-types--3552531-2.patch
-mv field-ui--unsupported-operand-types--3552531-2.patch patches/
-
-# Add to composer.json with descriptive name referencing issue
-{
-  "extra": {
-    "patches": {
-      "drupal/core": {
-        "Fix TypeError: Unsupported operand types array + null in EntityViewDisplayEditForm - Issue #3552531": "patches/field-ui--unsupported-operand-types--3552531-2.patch"
-      }
-    }
-  }
-}
-
-# Apply
-composer install
-```
-
-#### Common Search Patterns
-
-| Error Type | Search Term |
-|------------|-------------|
-| TypeError | Exact error message in quotes |
-| Deprecated function | Function name (e.g., `user_roles`) |
-| Missing method | Class name + method name |
-| Fatal error | Exact error text |
-
-#### Why This Matters
-
-- **Saves time**: Don't recreate existing solutions
-- **Better quality**: Community-reviewed patches are more robust
-- **Upstream integration**: Using official patches means easier upgrades
-- **Documentation**: Issue threads contain context and discussion
-
-#### Anti-Pattern Example
-
-❌ **What NOT to do**:
-1. See error
-2. Read code
-3. Create patch
-4. Apply patch
-5. (Someone points out existing issue)
-
-✅ **What TO do**:
-1. See error
-2. Extract exact error message
-3. Search drupal.org issue queue
-4. Find existing patch
-5. Apply official patch
-
-### Creating Local Patches
-
-**IMPORTANT**: Always create patches from a separate clone of the contrib module repo, not from the installed version in your project.
-
-```bash
-# Step 1: Clone the module repo to a separate directory (one-time setup)
-cd ~/Sites
-git clone git@git.drupal.org:project/module_name.git module_name-contrib
-
-# Step 2: Checkout the exact version you have installed
-cd ~/Sites/module_name-contrib
-git checkout 1.0.3  # Match your installed version
-
-# Step 3: Make your changes in the contrib repo
-# Edit files as needed...
-
-# Step 4: Generate the patch using git diff
-git diff > ~/Sites/your-project/patches/module_name-custom-fix.patch
-
-# Step 5: Add to composer.json
-{
-  "extra": {
-    "patches": {
-      "drupal/module_name": {
-        "Custom fix description": "patches/module_name-custom-fix.patch"
-      }
-    }
-  }
-}
-
-# Step 6: Apply via composer
-composer reinstall drupal/module_name
-```
-
-**Why use a separate repo?**
-- Creates clean patches without local modifications bleeding in
-- Matches the exact file structure composer expects
-- Allows proper version tracking with git tags
-- Enables contributing patches upstream to drupal.org
-
-**Patch format**: Patches should use git diff format (includes `a/` and `b/` prefixes):
-```
-diff --git a/src/File.php b/src/File.php
-index abc123..def456 100644
---- a/src/File.php
-+++ b/src/File.php
-```
+Search the issue queue for an existing patch BEFORE writing one; the step-by-step search and the separate-clone patch workflow are in [references/finding-and-creating-patches.md](references/finding-and-creating-patches.md).
 
 ### Patch Application
 
@@ -425,138 +206,9 @@ composer patches-repatch
 ```
 
 **For detailed patch workflows, see:** `references/drupal-patches-workflow.md`
-
 ## Drupal 11 Compatibility Workflow
 
-### Step 1: Analyze Readiness
-
-```bash
-# Scan all modules
-drush upgrade_status:analyze --all
-
-# Scan specific modules
-drush upgrade_status:analyze module1 module2 module3
-
-# Machine-readable output
-drush upgrade_status:analyze --all --format=json > d11-report.json
-drush upgrade_status:analyze --all --format=codeclimate > d11-report-ci.json
-
-# Scan only custom code
-drush upgrade_status:analyze --all --ignore-contrib
-
-# Scan only contrib
-drush upgrade_status:analyze --all --ignore-custom
-```
-
-### Step 2: Identify Issues
-
-**Major Issues** (blocking):
-- `REQUEST_TIME` constant → Use `\Drupal::time()->getRequestTime()`
-- `user_roles()` → Use `\Drupal\user\Entity\Role::loadMultiple()`
-- `file_validate_extensions()` → Use `file.validator` service
-- `system_retrieve_file()` → No replacement (refactor required)
-- `_drupal_flush_css_js()` → Use `AssetQueryStringInterface::reset()`
-
-**Info.yml Issues**:
-- Update `core_version_requirement` to include `^11`
-- Example: `core_version_requirement: ^9 || ^10 || ^11`
-
-### Step 3: Fix Custom Code
-
-**Example: Inject Time Service**
-
-```php
-use Drupal\Core\Datetime\TimeInterface;
-
-class MyController extends ControllerBase {
-  protected $time;
-
-  public function __construct(TimeInterface $time) {
-    $this->time = $time;
-  }
-
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('datetime.time')
-    );
-  }
-
-  public function myMethod() {
-    // OLD: $timestamp = REQUEST_TIME;
-    $timestamp = $this->time->getRequestTime();
-  }
-}
-```
-
-**Example: Replace user_roles()**
-
-```php
-// OLD:
-$roles = user_roles(TRUE);
-
-// NEW:
-use Drupal\user\Entity\Role;
-
-$roles = Role::loadMultiple();
-$role_options = [];
-foreach ($roles as $role_id => $role) {
-  if ($role_id !== 'anonymous') {
-    $role_options[$role_id] = $role->label();
-  }
-}
-```
-
-### Step 4: Create .info.yml Patches
-
-```bash
-# Create patch for contrib module
-cd docroot/modules/contrib/module_name
-git diff module.info.yml > /path/to/patches/module-d11-info.patch
-
-# Patch content:
---- a/module.info.yml
-+++ b/module.info.yml
-@@ -2,7 +2,7 @@
- name: Module Name
- type: module
- description: Module description
--core_version_requirement: ^9 || ^10
-+core_version_requirement: ^9 || ^10 || ^11
-```
-
-### Step 5: Apply Patches & Update Lenient List
-
-```json
-{
-  "extra": {
-    "patches": {
-      "drupal/module_name": {
-        "Drupal 11 .info.yml support": "patches/module-d11-info.patch"
-      }
-    },
-    "drupal-lenient": {
-      "allowed-list": [
-        "drupal/module_name"
-      ]
-    }
-  }
-}
-```
-
-```bash
-composer install
-drush updb -y
-drush cr
-```
-
-### Step 6: Verify Fixes
-
-```bash
-# Re-scan to confirm issues resolved
-drush upgrade_status:analyze module_name
-
-# Should show "No known issues found"
-```
+The six-step upgrade_status workflow (analyze, identify, fix custom code, `.info.yml` patches, lenient list, verify) is in [references/d11-upgrade-workflow.md](references/d11-upgrade-workflow.md).
 
 ## Complete Update Checklist
 
@@ -677,320 +329,23 @@ acli remote:drush -- cr                       # Acquia
 ```
 
 **NEVER commit vendor/ with dev dependencies to production branches!**
-
-## Developing Contrib Modules Locally
-
-When actively developing a contrib module for drupal.org, use this workflow to avoid constantly updating via composer:
-
-### Symlink Development Workflow
-
-```bash
-# 1. Set up module repository in temp location
-cd /tmp
-git clone git@git.drupal.org:project/module_name.git
-cd module_name
-# Make your changes...
-
-# 2. Remove composer-installed version and symlink your dev copy
-cd /path/to/project
-rm -rf docroot/modules/contrib/module_name
-ln -s /tmp/module_name docroot/modules/contrib/module_name
-
-# 3. Develop and test
-# Make changes in /tmp/module_name
-# Test immediately in your Drupal site
-drush cr  # Clear cache as needed
-
-# 4. When ready to publish
-cd /tmp/module_name
-git add -A
-git commit -m "Your changes"
-git push origin 1.0.x
-
-# 5. Clean up: remove symlink and reinstall from composer
-cd /path/to/project
-rm docroot/modules/contrib/module_name
-composer install  # Reinstalls from drupal.org
-```
-
-**Benefits**:
-- Test changes immediately without composer update cycles
-- Keep git history in the module's own repo
-- Easy to commit and push changes
-- No risk of accidentally committing module code to main project
-
-**Important Notes**:
-- Don't forget to remove the symlink before committing project changes
-- Clear Drupal cache after changes: `drush cr`
-- When done developing, always reinstall via composer to ensure clean state
-- Useful for fixing autoloader issues, adding features, or troubleshooting
-
-**Example**: Fixing recurly_commerce_api autoloader issue
-```bash
-# Module needed composer.json autoload section
-cd /tmp/recurly_commerce_api
-# Edit composer.json to add autoload section
-git commit -m "Add PSR-4 autoload configuration"
-git push origin 1.0.x
-
-# Back in main project
-rm docroot/modules/contrib/recurly_commerce_api
-composer install  # Gets latest with fix
-drush cr
-```
-
-## Common Patterns
-
-### Pattern: Update Module with Known Patch
-
-```bash
-# 1. Find patch in issue queue
-# 2. Add to composer.json patches section
-# 3. Update module
-composer require drupal/module_name:^3.0 --with-all-dependencies
-drush updb -y
-drush cr
-# 4. Test
-# 5. Commit
-git add composer.json composer.lock patches/
-git commit -m "Update module_name to 3.0 with D11 compatibility patch"
-```
-
-### Pattern: Fix Contrib D11 Issue
-
-```bash
-# 1. Scan for issues
-drush upgrade_status:analyze module_name
-
-# 2. Create info.yml patch if needed
-cd docroot/modules/contrib/module_name
-# Edit module.info.yml to add ^11
-git diff module.info.yml > ../../../patches/module-d11-info.patch
-
-# 3. Add patch to composer.json
-# 4. Apply
-composer install
-drush cr
-
-# 5. Verify
-drush upgrade_status:analyze module_name
-```
-
-### Pattern: Major Version Upgrade with Breaking Changes
-
-```bash
-# 1. Read CHANGELOG/UPDATE.md for breaking changes
-# 2. Check issue queue for upgrade path documentation
-# 3. Backup database before upgrade
-drush sql:dump > backup-before-update.sql
-
-# 4. Update module
-composer require drupal/module_name:^3.0 --with-all-dependencies
-
-# 5. Run updates
-drush updb -y
-
-# 6. Check for errors
-drush watchdog:show --severity=Error --count=20
-
-# 7. Test thoroughly
-# 8. If issues, can rollback:
-# git checkout composer.json composer.lock
-# composer install
-# drush sql:cli < backup-before-update.sql
-```
-
-## Contributing Back to drupal.org
-
-When you've developed a fix or feature that should be contributed upstream, use the issue fork workflow.
-
-### Step 1: Create Issue on drupal.org
-
-1. Go to `https://www.drupal.org/project/issues/MODULE_NAME`
-2. Click "Create a new issue"
-3. Fill in:
-   - **Title**: Descriptive title of the feature/fix
-   - **Category**: Bug report, Feature request, or Task
-   - **Priority**: Normal (unless exceptional)
-4. Note the issue number (e.g., 3569725)
-
-### Issue Description Format
-
-Use the standard drupal.org template with HTML formatting:
-
-```html
-<h3 id="overview">Overview</h3>
-
-<p>Problem description here.</p>
-<ul>
-<li>Bullet point one</li>
-<li>Bullet point two</li>
-</ul>
-
-<h3 id="proposed-resolution">Proposed resolution</h3>
-
-<p><strong>Behavior:</strong></p>
-<ul>
-<li>Feature behavior one</li>
-<li>Feature behavior two</li>
-</ul>
-
-<p><strong>Technical implementation:</strong></p>
-<ul>
-<li><code>SomeClass</code> - description</li>
-<li><code>some_function()</code> - description</li>
-</ul>
-
-<p><strong>Files changed:</strong></p>
-<ul>
-<li><code>path/to/file.php</code> - Description of changes</li>
-</ul>
-
-<h3 id="ui-changes">User interface changes</h3>
-
-<p>Description of UI changes (or "None" if no UI changes).</p>
-
-<h3 id="steps-to-test">Steps to test</h3>
-
-<ol>
-<li>First step</li>
-<li>Second step</li>
-<li>Expected result</li>
-</ol>
-```
-
-**Formatting reference**: https://www.drupal.org/filter/tips
-- `<code>...</code>` for inline code
-- `<strong>...</strong>` for bold
-- `<ul><li>...</li></ul>` for unordered lists
-- `<ol><li>...</li></ol>` for ordered lists
-- `<h3 id="section-name">...</h3>` for section headers
-- `<p>...</p>` for paragraphs
-
-### Step 2: Create Issue Fork on drupal.org
-
-1. On the issue page, click "Create issue fork"
-2. Copy the Git commands provided
-
-### Step 3: Clone Module and Set Up Fork
-
-```bash
-# Clone the module repo (if not already cloned)
-cd ~/Sites
-git clone git@git.drupal.org:project/module_name.git module_name-contrib
-cd module_name-contrib
-
-# Add the issue fork as a remote (replace XXXXXXX with issue number)
-git remote add module_name-XXXXXXX git@git.drupal.org:issue/module_name-XXXXXXX.git
-git fetch module_name-XXXXXXX
-
-# Checkout the issue branch
-git checkout -b 'XXXXXXX-short-description' --track module_name-XXXXXXX/'XXXXXXX-short-description'
-```
-
-### Step 4: Make Changes and Test
-
-```bash
-# Make your changes
-# For PHP modules, ensure code follows Drupal coding standards
-# For modules with JS/UI, run linting and build
-
-# Test your changes locally
-```
-
-### Step 5: Commit and Push
-
-```bash
-# Stage changed files
-git add path/to/changed/files
-
-# Commit with proper message format
-git commit -m "$(cat <<'EOF'
-Issue #XXXXXXX: Short description
-
-- Bullet point of change 1
-- Bullet point of change 2
-- Bullet point of change 3
-EOF
-)"
-
-# Push to issue fork
-git push module_name-XXXXXXX XXXXXXX-short-description
-```
-
-### Step 6: Create Merge Request
-
-After pushing, you'll see a URL in the output:
-```
-remote: To create a merge request for XXXXXXX-short-description, visit:
-remote:   https://git.drupalcode.org/issue/module_name-XXXXXXX/-/merge_requests/new?merge_request%5Bsource_branch%5D=XXXXXXX-short-description
-```
-
-1. Visit that URL to create the merge request
-2. Return to the issue page on drupal.org
-3. Set issue status to "Needs review"
-
-### Commit Message Format
-
-Drupal.org standard format:
-```
-Issue #XXXXXXX: Short description (50 chars max)
-
-- Detail about what changed
-- Another detail
-- Technical implementation note
-```
-
-### Two-Repository Workflow
-
-When contributing to a module you also use in your project:
-
-1. **Contrib Repo** (`~/Sites/module-contrib/`) - Clean checkout for developing and contributing
-2. **App Repo** (`~/Sites/your-app/`) - Uses composer patches to apply changes
-
-**Benefits**:
-- Clean separation between contribution work and app usage
-- Patches can be applied/removed easily via Composer
-- App stays functional while iterating on the feature
-
-**Workflow**:
-```bash
-# 1. Develop in contrib repo
-cd ~/Sites/module-contrib
-# Make changes...
-
-# 2. Generate patch
-git diff > feature-name.patch
-
-# 3. Copy to app and apply via composer
-cp feature-name.patch ~/Sites/your-app/patches/
-# Add to composer.json patches section
-cd ~/Sites/your-app
-composer reinstall drupal/module_name
-
-# 4. Test in app, iterate as needed
-
-# 5. When ready, commit and push from contrib repo
-cd ~/Sites/module-contrib
-git add -A && git commit -m "Issue #XXXXXXX: Description"
-git push fork-remote branch-name
-```
-
-### Using Remote Patches (After MR Created)
-
-Once a merge request exists, you can use the remote diff URL:
-
-```json
-{
-  "extra": {
-    "patches": {
-      "drupal/module_name": {
-        "Feature (https://www.drupal.org/project/module_name/issues/XXXXXXX)": "https://git.drupalcode.org/project/module_name/-/merge_requests/XXX.diff"
-      }
-    }
-  }
-}
-```
+## Developing and Contributing Contrib Modules
+
+The symlink development workflow and the drupal.org issue-fork / merge-request workflow are in [references/contributing-upstream.md](references/contributing-upstream.md). Worked update recipes (known patch, D11 fix, breaking major upgrade) are in [references/update-patterns.md](references/update-patterns.md).
+
+## References
+
+| File | Read it when |
+|------|--------------|
+| [references/d11-upgrade-workflow.md](references/d11-upgrade-workflow.md) | Checking whether a module supports Drupal 11, or running an upgrade_status scan and fixing what it finds |
+| [references/d11-common-deprecations.md](references/d11-common-deprecations.md) | Replacing a specific deprecated constant, function, class constant or Twig filter |
+| [references/drupal-lenient.md](references/drupal-lenient.md) | Deciding whether a module belongs on (or can come off) the drupal-lenient allowed-list |
+| [references/finding-and-creating-patches.md](references/finding-and-creating-patches.md) | Hitting a Drupal error and looking for an existing patch, or writing a new local patch from a clean clone |
+| [references/drupal-patches-workflow.md](references/drupal-patches-workflow.md) | Any deeper composer-patches question: plugin commands, remote/local/MR-diff patches, stacking a patch on already-patched modules |
+| [references/issue-queue-rss-feeds.md](references/issue-queue-rss-feeds.md) | Querying a drupal.org issue queue programmatically (RSS filters, curl/WebFetch parsing) |
+| [references/update-patterns.md](references/update-patterns.md) | Following a worked recipe for a patched update, a D11 contrib fix, or a major upgrade with rollback |
+| [references/contributing-upstream.md](references/contributing-upstream.md) | Developing a contrib module locally via symlink, or contributing a fix through an issue fork and merge request |
+| [examples/](examples/) | Runnable shell walk-throughs of the same scenarios |
 
 ## Reference Links
 

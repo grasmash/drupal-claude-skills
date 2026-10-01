@@ -37,20 +37,15 @@ echo "✓ Patch applies cleanly"
 cd ../../..
 
 # Step 5: Add to composer.json
-cat >> composer.json <<'EOF'
-{
-  "extra": {
-    "patches": {
-      "drupal/audiofield": {
-        "Replace deprecated file_validate_extensions() - https://drupal.org/node/3432063": "https://www.drupal.org/files/issues/2024-06-15/audiofield-file-validator-3432063-12.patch"
-      }
-    }
-  }
-}
-EOF
+# (composer config --merge writes valid JSON and keeps the package's other patches;
+#  appending a JSON fragment to composer.json with cat >> would make it invalid)
+composer config --json --merge extra.patches.drupal/audiofield \
+  '{"Replace deprecated file_validate_extensions() - https://drupal.org/node/3432063": "https://www.drupal.org/files/issues/2024-06-15/audiofield-file-validator-3432063-12.patch"}'
 
-# Step 6: Apply patch via composer
-composer install
+# Step 6: Apply patch via composer (v2 applies from patches.lock.json, and only
+# when the package is installed/updated - so relock, then reinstall)
+composer patches-relock
+composer reinstall drupal/audiofield
 
 # Or if module needs updating too:
 # composer require drupal/audiofield:^1.13 --with-all-dependencies
@@ -74,7 +69,7 @@ Manual testing checklist:
 drush watchdog:show --severity=Error --count=10
 
 # Step 9: Commit
-git add composer.json composer.lock
+git add composer.json composer.lock patches.lock.json
 git commit -m "Apply patch to fix file_validate_extensions() in audiofield
 
 Applied patch from drupal.org/node/3432063 to fix deprecated

@@ -273,9 +273,13 @@ core_version_requirement: ^9 || ^10 || ^11
 
 **Create patch**:
 ```bash
-cd docroot/modules/contrib/my_module
-# Edit my_module.info.yml
-git diff my_module.info.yml > ../../../patches/my_module-d11-info.patch
+# From the project root; contrib is not a git repo, so take a temporary baseline first
+MODULE_DIR=docroot/modules/contrib/my_module   # or web/modules/contrib/my_module
+git -C "$MODULE_DIR" init -q && git -C "$MODULE_DIR" add -A
+git -C "$MODULE_DIR" -c user.name=patch -c user.email=patch@localhost commit -qm pristine
+# Edit $MODULE_DIR/my_module.info.yml
+git -C "$MODULE_DIR" diff > patches/my_module-d11-info.patch
+git -C "$MODULE_DIR" checkout -- . && rm -rf "$MODULE_DIR/.git"
 ```
 
 ## Quick Reference: Service Names

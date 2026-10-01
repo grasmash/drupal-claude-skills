@@ -12,12 +12,14 @@ drush upgrade_status:analyze licensing
 
 # Shows: "Call to deprecated function user_roles() at line 77"
 
-# Step 2: Navigate to module
+# Step 2: Navigate to module (web/modules/contrib/licensing on web/ layouts)
 cd docroot/modules/contrib/licensing
 
-# Step 3: Check git status (should be clean)
-git status
-# Should show: nothing to commit, working tree clean
+# Step 3: Composer-installed contrib is not a git repo - take a temporary
+# pristine baseline so git diff has something to compare against
+git init -q
+git add -A
+git -c user.name=patch -c user.email=patch@localhost commit -qm pristine
 
 # Step 4: Identify the file and make changes
 echo "Step 4: Editing src/Form/LicenseTypeForm.php..."
@@ -71,11 +73,11 @@ Press Enter when changes are made"
 
 # Step 5: Create the patch
 echo "Step 5: Creating patch file..."
-git diff > ../../../patches/licensing-user-roles-d11-fix.patch
+git diff > ../../../../patches/licensing-user-roles-d11-fix.patch
 
 # Step 6: Verify patch format
 echo "Step 6: Verifying patch..."
-cat ../../../patches/licensing-user-roles-d11-fix.patch
+cat ../../../../patches/licensing-user-roles-d11-fix.patch
 
 # Should show:
 # diff --git a/src/Form/LicenseTypeForm.php b/src/Form/LicenseTypeForm.php
@@ -84,36 +86,30 @@ cat ../../../patches/licensing-user-roles-d11-fix.patch
 # +++ b/src/Form/LicenseTypeForm.php
 # ... changes ...
 
-# Step 7: Test patch applies
+# Step 7: Reset to pristine, then test the patch applies to the unmodified module
 echo "Step 7: Testing patch application..."
-git apply --check ../../../patches/licensing-user-roles-d11-fix.patch
+git checkout -- .
+git apply --check ../../../../patches/licensing-user-roles-d11-fix.patch
 echo "✓ Patch applies cleanly"
 
-# Step 8: Reset changes (patch will be applied via composer)
-git checkout .
+# Step 8: Remove the temporary repo (patch will be applied via composer)
+rm -rf .git
 
 # Step 9: Add to composer.json
-cd ../../..
+cd ../../../..
 
 echo "Step 9: Adding patch to composer.json..."
 
-# Edit composer.json to add:
-cat >> composer.json <<'EOF'
-{
-  "extra": {
-    "patches": {
-      "drupal/licensing": {
-        "Replace deprecated user_roles() for D11 compatibility": "patches/licensing-user-roles-d11-fix.patch",
-        "Drupal 11 .info.yml support": "patches/licensing-d11-info.patch"
-      }
-    }
-  }
-}
-EOF
+# Register the patch (composer config --merge writes valid JSON and keeps the
+# package's other patches; appending with cat >> would corrupt composer.json).
+# Register only patch files that exist - this script creates just the one.
+composer config --json --merge extra.patches.drupal/licensing \
+  '{"Replace deprecated user_roles() for D11 compatibility": "patches/licensing-user-roles-d11-fix.patch"}'
 
-# Step 10: Apply via composer
+# Step 10: Apply via composer (v2 applies from patches.lock.json)
 echo "Step 10: Applying patch via composer..."
-composer install
+composer patches-relock
+composer reinstall drupal/licensing
 
 # Should show:
 # - Applying patches for drupal/licensing
@@ -138,7 +134,7 @@ Manual testing:
 drush watchdog:show --severity=Error --count=10
 
 # Step 12: Commit
-git add composer.json composer.lock patches/licensing-user-roles-d11-fix.patch
+git add composer.json composer.lock patches.lock.json patches/licensing-user-roles-d11-fix.patch
 git commit -m "Fix deprecated user_roles() in licensing module for D11
 
 Created custom patch to replace deprecated user_roles() function with

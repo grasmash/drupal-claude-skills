@@ -199,19 +199,21 @@ For GitLab merge requests:
 ### Method 1: Git Diff (Recommended)
 
 ```bash
-# Navigate to contrib module
+# Navigate to contrib module (web/modules/contrib/audiofield on web/ layouts)
 cd docroot/modules/contrib/audiofield
+
+# Composer-installed contrib is not a git repo: take a temporary baseline
+git init -q && git add -A && git commit -qm pristine
 
 # Make your changes to the files
 # Edit src/AudioFieldPluginBase.php, etc.
 
-# Create patch
-git diff > /path/to/patches/audiofield-custom-fix.patch
-
-# Or from project root:
-cd /path/to/project
-git diff docroot/modules/contrib/audiofield > patches/audiofield-custom-fix.patch
+# Create patch (paths relative to the module root, as composer-patches expects)
+git diff > ../../../../patches/audiofield-custom-fix.patch
+git checkout -- . && rm -rf .git
 ```
+
+If your project commits contrib code, `git diff --relative` run inside the module directory gives the same module-relative paths; a plain `git diff docroot/modules/contrib/audiofield` from the project root does NOT (its paths start with `docroot/...` and will not apply to the package).
 
 **Advantages**:
 - Clean, standard format
@@ -799,11 +801,14 @@ composer show drupal/module_name
 3. **Rebase patch manually**:
 ```bash
 cd docroot/modules/contrib/module_name
+# Contrib is not a git repo: take a temporary baseline first
+git init -q && git add -A && git commit -qm pristine
 # Apply what works
 patch -p1 < /path/to/patch.patch
 # Manually fix conflicts
 # Create new patch
 git diff > /path/to/patches/module-rebased.patch
+rm -rf .git
 ```
 
 ### Scenario 2: Multiple Patches for Same Module
@@ -886,16 +891,20 @@ grep "user_roles\|system_retrieve_file\|_drupal_flush" downloaded.patch
 
 3. **If conflict exists, create combined patch**:
 ```bash
-cd docroot/modules/contrib/module_name
-
 # Ensure module is in clean patched state (existing patches applied)
 composer install
+
+cd docroot/modules/contrib/module_name   # or web/modules/contrib/module_name
+
+# Contrib is not a git repo: take a temporary baseline of the patched state
+git init -q && git add -A && git commit -qm "After existing patches"
 
 # Make your additional changes
 # Edit files as needed
 
 # Create combined patch that includes your changes ON TOP of existing patches
-git diff > ../../../patches/module-combined-fixes.patch
+git diff > ../../../../patches/module-combined-fixes.patch
+rm -rf .git
 
 # Update composer.json: remove conflicting individual patches, add combined one
 ```
@@ -948,16 +957,20 @@ cat src/FailingFile.php | head -100
 **Example: Replace user_roles() in licensing module**
 
 ```bash
-cd docroot/modules/contrib/licensing
+cd docroot/modules/contrib/licensing   # or web/modules/contrib/licensing
+
+# Contrib is not a git repo: take a temporary baseline first
+git init -q && git add -A && git commit -qm pristine
 
 # Edit src/Form/LicenseTypeForm.php
 # Replace user_roles() with Role::loadMultiple() pattern
 
 # Create patch
-git diff > ../../../patches/licensing-user-roles-d11-fix.patch
+git diff > ../../../../patches/licensing-user-roles-d11-fix.patch
+rm -rf .git
 
 # Verify patch format
-cat ../../../patches/licensing-user-roles-d11-fix.patch
+cat ../../../../patches/licensing-user-roles-d11-fix.patch
 ```
 
 **Add to composer.json**:
