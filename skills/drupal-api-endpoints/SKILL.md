@@ -201,11 +201,17 @@ $access = AccessResult::allowedIf(
 ```
 
 ### Cache Metadata
+Only a `CacheableResponseInterface` response carries cache metadata (a plain
+`JsonResponse` has no `getCacheableMetadata()` and is never cached by Dynamic
+Page Cache). For a cacheable GET, return core's `CacheableJsonResponse`:
 ```php
+$response = new CacheableJsonResponse($data);
 $response->getCacheableMetadata()
-  ->addCacheContexts(['user', 'user.permissions'])
+  ->addCacheContexts(['user.permissions'])
   ->addCacheTags($entity->getCacheTags());
 ```
+Contexts, tags, invalidation and the freshness test a caching change owes:
+see the `drupal-performance` skill (`references/caching-lessons.md` §1, §2, §7).
 
 ## Response-Shape Contracts (installed clients)
 
