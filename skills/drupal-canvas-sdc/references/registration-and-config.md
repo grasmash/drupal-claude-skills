@@ -25,22 +25,43 @@ runs `ComponentSourceManager::generateComponents()`, which calls
 fails gets no `canvas.component.sdc.*` config entity, and an existing one is
 disabled.
 
-**Why it matters:** the failure is silent at build time. In practice a Twig
-`{{ include('mytheme:my-component') }}` of an ineligible SDC threw
-`ComponentNotFoundException` on deployed environments, a 5xx on every route
-rendering it, while the same code rendered locally because `canvas_dev_mode`
-was enabled there. Treat dev mode as something that hides this class of bug.
+**What the source guarantees:** an ineligible SDC is disabled in Canvas. It
+cannot be placed in the editor, and the reasons are recorded (see below). The
+failure is silent: no error at build or cache-rebuild time.
 
-Checklist for every `*.component.yml` (from `ComponentMetadataRequirementsChecker`):
+**Unexplained observation (not a proven mechanism):** 5xx responses with
+`ComponentNotFoundException` were seen on deployed environments on routes that
+Twig-`include()` an SDC missing prop titles, while the same code rendered
+locally with `canvas_dev_mode` enabled, and adding the titles was followed by
+the errors stopping. The Canvas 1.7.1 source does not explain this:
+`canvas_dev_mode` only removes the `Choice` constraint on the component
+`source` key, Canvas's `ComponentPluginManager` does not filter SDCs by
+eligibility, and core throws `ComponentNotFoundException` only when the SDC
+plugin itself is missing. One plausible, unverified alternative is SDC
+discovery cached by a cache rebuild that ran before the code sync finished. So
+treat the checks below as cheap insurance, not as a proven fix for that
+symptom.
 
-- [ ] Every prop has `title:`
+Checklist for every `*.component.yml`, complete for
+`ComponentMetadataRequirementsChecker::check()` in **Canvas 1.7.1**
+(props whose type is a Drupal `Attribute` are skipped):
+
+- [ ] The component's `group` is not `Elements` (reserved)
 - [ ] Every slot has `title:`
-- [ ] Every **required** prop has `examples:` with at least one value
+- [ ] Every prop has `title:`
+- [ ] No `enum` (or array `items.enum`) contains an empty string
+- [ ] Every **required** prop has `examples:` with at least one value, except content-entity-reference props
 - [ ] The first example validates against the prop's schema (Canvas uses it as the default value)
-- [ ] Content-entity-reference props do **not** carry `examples:` (they are explicitly rejected)
-- [ ] Every prop's shape maps to a field type/widget Canvas can store. Object-typed props are the usual failure: an unstorable shape produces "Drupal Canvas does not know of a field type/widget to allow populating the `<prop>` prop"
+- [ ] The first example can actually be used as a default for the prop's storable shape ("example value ... cannot be used as a default" otherwise)
+- [ ] Required array props declare `minItems: 1` (or higher)
 - [ ] `minItems` appears only on required array props
-- [ ] The component is not `status: obsolete` and not flagged `noUi` (both exclude it on purpose)
+- [ ] `maxItems`, if set on an array prop, is at least 2 (use a non-array type for single values)
+- [ ] `x-formatting-context` on an HTML (`contentMediaType: text/html`) prop is `inline` or `block`
+- [ ] Content-entity-reference props are optional, carry no `examples:`, and pass Canvas's content-entity-reference schema validation
+- [ ] Every prop's shape maps to a field type/widget Canvas can store. Object-typed props are the usual failure: an unstorable shape produces "Drupal Canvas does not know of a field type/widget to allow populating the `<prop>` prop"
+
+Separately, `SingleDirectoryComponentDiscovery::checkRequirements()` excludes
+components with `status: obsolete` or flagged `noUi` on purpose.
 
 **Where the reasons are recorded:** `ComponentIncompatibilityReasonRepository`,
 backed by the key-value collection `canvas:component:reasons`. Read them
@@ -53,8 +74,10 @@ ddev drush php:eval 'print_r(\Drupal::service(\Drupal\canvas\ComponentIncompatib
 An empty result for your component plus a `canvas.component.sdc.<ext>.<name>`
 entity in `config:status` / `config:get` means it registered.
 
-**Verify the way production sees it:** with `canvas_dev_mode` uninstalled and
-a fresh cache rebuild, render something that includes the component.
+**Cheap insurance before shipping:** with `canvas_dev_mode` uninstalled and a
+fresh cache rebuild, confirm the component has no recorded reasons and render
+something that includes it. This matches how production runs; it is not a
+proven fix for the observation above.
 
 ```bash
 ddev drush pm:uninstall canvas_dev_mode -y && ddev drush cr

@@ -104,7 +104,7 @@ libraryOverrides:
     - core/once
 ```
 
-**CRITICAL**: `title:` on every prop (and slot) and `examples:` on every required prop are **registration requirements**, not cosmetic. Canvas checks them when it builds its component registry; an SDC that fails is marked ineligible and gets no Canvas component entity. In practice a Twig `include()` of that component on a deployed environment then threw `ComponentNotFoundException`, a 5xx on every route that renders it, while the same code worked locally with `canvas_dev_mode` enabled. The first example must also validate against the prop schema, since Canvas uses it as the default value. See [references/registration-and-config.md](references/registration-and-config.md) for the full checklist and how to read the recorded reasons.
+**Registration requirements:** `title:` on every prop and slot, and `examples:` on every required prop, are Canvas registration requirements, not cosmetic. Canvas checks them on cache rebuild; an SDC that fails is disabled in Canvas (it cannot be placed in the editor) and the reasons are recorded. The first example must also validate against the prop schema, since Canvas uses it as the default value. There are more rules; see [references/registration-and-config.md](references/registration-and-config.md) for the full Canvas 1.7.1 checklist, how to read the recorded reasons, and an unexplained production 5xx that was seen alongside missing prop titles.
 
 ## Prop Types and Canvas Widgets
 
@@ -564,7 +564,7 @@ export const Featured = {
 
 | Module | Status | Environment | When to Use |
 |--------|--------|-------------|-------------|
-| `canvas_dev_mode` | **Only when you need it** | Local only, NEVER production | When you need the experimental APIs or extensions toolbar. It masks SDC registration failures (see below), so verify with it uninstalled before shipping. |
+| `canvas_dev_mode` | **Only when you need it** | Local only, NEVER production | When you need the experimental APIs or extensions toolbar. Production runs without it, so also check new SDCs with it uninstalled (see below). |
 | `canvas_vite` | **Keep disabled** | Local only when needed | ONLY when developing the Canvas editor UI itself (the React app). Requires Vite dev server running. Causes `ERR_CONNECTION_REFUSED` errors if Vite is not running. |
 | `canvas_ai` | Hidden/internal | Per-environment | AI-assisted page building. Enable if using Canvas AI features. |
 | `canvas_oauth` | As needed | Production + local | Only if external apps need authenticated Canvas API access. |
@@ -574,7 +574,7 @@ export const Featured = {
 - Removes `Choice` constraint on ComponentSource plugins, allowing unstable plugin types
 - Shows the extensions toolbar in the Canvas editor UI
 - Enable: `ddev drush en canvas_dev_mode -y`
-- **It hides registration failures.** An SDC missing a prop `title:` or a required-prop `examples:` can render fine locally with dev mode on, then fail with `ComponentNotFoundException` on every environment where dev mode is absent (it should never be on in production). Before shipping a new or changed SDC, check it the way production sees it:
+- **Check new SDCs without it.** Its only hook in the Canvas 1.7.1 source removes the `Choice` constraint on the component `source` key, so it is not known to change SDC registration. But production runs without it, and a production-only 5xx was once seen alongside missing prop titles (unexplained; see [references/registration-and-config.md](references/registration-and-config.md)). As cheap insurance, before shipping a new or changed SDC:
   ```bash
   ddev drush pm:uninstall canvas_dev_mode -y && ddev drush cr
   # render a page (or a test) that includes the component; it must not throw
@@ -883,7 +883,7 @@ After modifying any component's `component.yml` props:
 
 Details, commands and detection steps: [references/registration-and-config.md](references/registration-and-config.md).
 
-- **Registration rules**: every prop and slot needs `title:`, every required prop needs `examples:`, every prop shape must be storable. Ineligible SDCs get no Canvas entity; reasons are recorded in `ComponentIncompatibilityReasonRepository`. Verify with `canvas_dev_mode` uninstalled after a `drush cr`.
+- **Registration rules**: every prop and slot needs `title:`, every required prop needs `examples:`, every prop shape must be storable. Ineligible SDCs are disabled in Canvas (no entity is created, an existing one is disabled); reasons are recorded in `ComponentIncompatibilityReasonRepository`. As cheap insurance, check with `canvas_dev_mode` uninstalled after a `drush cr`.
 - **New SDC = new config**: Canvas auto-creates `canvas.component.sdc.<extension>.<name>` in the database. Export that one object in the same change, or the deploy's config import deletes it.
 - **Canvas module upgrade**: version-hash inputs change, so `drush cr` recomputes `active_version` on many `canvas.component.*` objects. Re-export each drifting name, confirm drift stays at zero across two more cache rebuilds, and never prune `versioned_properties`.
 - **`Different` right after an import**: if only `active_version` and one archived version differ, it is versioned-config recompute noise from a stale committed hash, not a settings change.
