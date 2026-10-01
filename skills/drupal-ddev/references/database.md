@@ -86,18 +86,18 @@ ddev drush sqlq --file=backup.sql
 **Use this when you need precise control over the import process using Drush connection parameters.**
 
 ```bash
-# 1. Place SQL file in docroot so container can access it
-cp /path/to/backup.sql docroot/backup.sql
+# 1. Place SQL file in the docroot so container can access it
+cp /path/to/backup.sql web/backup.sql
 
 # 2. Import using drush sql:connect
-ddev exec "$(drush sql:connect) < docroot/backup.sql"
+ddev exec "$(drush sql:connect) < web/backup.sql"
 
 # 3. Clean up
-rm docroot/backup.sql
+rm web/backup.sql
 ```
 
 **Why this works:**
-- SQL file is placed in `docroot/` which is mounted in the container
+- SQL file is placed in `web/` which is mounted in the container
 - `$(drush sql:connect)` expands to the mysql connection command with all parameters
 - `ddev exec` runs the command inside the container where it can access the file
 - The `<` redirect happens inside the container context
@@ -111,10 +111,10 @@ rm docroot/backup.sql
 **Common variations:**
 ```bash
 # Import and run specific queries after
-ddev exec "$(drush sql:connect) < docroot/backup.sql && drush sqlq 'UPDATE system SET status=1'"
+ddev exec "$(drush sql:connect) < web/backup.sql && drush sqlq 'UPDATE system SET status=1'"
 
 # Import with verbose output
-ddev exec "bash -c '$(drush sql:connect) < docroot/backup.sql'"
+ddev exec "bash -c '$(drush sql:connect) < web/backup.sql'"
 ```
 
 ---

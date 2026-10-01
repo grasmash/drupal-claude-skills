@@ -118,6 +118,8 @@ core_version_requirement: ^8 || ^9 || ^10 || ^11
 
 The `mglaman/composer-drupal-lenient` plugin allows installing modules that haven't updated their version requirements yet.
 
+Lenient/core-compat overrides: see references/drupal-lenient.md — that reference covers validating candidates against UPSTREAM `composer.json`/`.info.yml` requirements (not the local patched copy), the `composer prohibits` check, and when to add/remove a module from the allowed-list.
+
 ### Setup
 
 ```json

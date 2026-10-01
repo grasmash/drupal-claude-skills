@@ -8,7 +8,7 @@ Complete reference for DDEV configuration file.
 
 ```yaml
 name: myproject
-type: drupal10
+type: drupal11
 docroot: web
 php_version: "8.3"
 webserver_type: nginx-fpm
@@ -54,14 +54,14 @@ name: myproject
 
 ### Project Type
 ```yaml
-type: drupal10   # Or drupal9, drupal11
+type: drupal11   # Or drupal10, drupal9
 ```
 
 **Available Drupal types**:
-- `drupal10` - Drupal 10 (recommended)
+- `drupal11` - Drupal 11 (recommended)
+- `drupal10` - Drupal 10
 - `drupal9` - Drupal 9
 - `drupal` - Auto-detect Drupal version
-- `drupal11` - Drupal 11 (when available)
 
 ### Document Root
 ```yaml
@@ -387,7 +387,7 @@ provider: platform
 
 ```yaml
 name: mysite
-type: drupal10
+type: drupal11
 docroot: web
 php_version: "8.3"
 webserver_type: nginx-fpm
@@ -453,14 +453,14 @@ timezone: America/New_York
 ```yaml
 # Lando .lando.yml
 name: mysite
-recipe: drupal10
+recipe: drupal11
 config:
   php: '8.2'
   webroot: web
 
 # DDEV equivalent
 name: mysite
-type: drupal10
+type: drupal11
 docroot: web
 php_version: "8.2"
 ```
@@ -470,7 +470,7 @@ php_version: "8.2"
 ```yaml
 # DDEV config for existing MAMP site
 name: mysite
-type: drupal10
+type: drupal11
 docroot: .     # Often no subdirectory
 php_version: "8.1"
 database:
