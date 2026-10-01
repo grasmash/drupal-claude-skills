@@ -34,7 +34,10 @@ echo "=== LOCAL: my_module.stats_hero ===" && \
 echo "=== LOCAL: my_module.myfeature ===" && \
   grep "membership_text\|button_text" config/default/my_module.myfeature.yml
 
-# 3. Manually edit files using Edit tool to match dev values
+# 3. Take dev's value one object at a time (never hand-author the YAML)
+for n in block.block.mytheme_parallaxheroblock my_module.stats_hero my_module.myfeature; do
+  terminus drush mysite.dev -- config:get "$n" --format=yaml > "config/default/$n.yml"
+done
 
 # 4. Review and commit changes
 git diff config/default/block.block.mytheme_parallaxheroblock.yml \
@@ -181,6 +184,8 @@ cp config/default/search_api.server.main.yml \
    config/local/config_split.patch.search_api.server.main.yml
 
 # 2. Edit the override file with local-specific settings
+# Hand-editing a split file is an exception to "never hand-author YAML": review the
+# result after the export below regenerates it
 # Use Edit tool to modify config/local/config_split.patch.search_api.server.main.yml
 
 # 3. Update split config to reference it

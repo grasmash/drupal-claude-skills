@@ -232,9 +232,10 @@ diff -u config/default/config.name.yml /tmp/remote.yml
 
 ### Apply Changes
 
-**Preferred**: Edit config files directly, then commit:
+**Preferred**: never hand-author the YAML. Either make the change in the site (UI, `config:set` for simple config, or the entity API for config entities) and export that one object, or, to take an environment's value, write that environment's `config:get` output for the one object (see [surgical-config.md](references/surgical-config.md)):
 ```bash
-# Use Edit tool on config/default/config.name.yml
+ddev drush config:get config.name --format=yaml > config/default/config.name.yml
+# or: terminus drush {site}.{env} -- config:get config.name --format=yaml > config/default/config.name.yml
 git diff config/default/config.name.yml
 git add config/default/config.name.yml
 git commit -m "Update config from {env}"
@@ -311,7 +312,7 @@ terminus drush {site}.{env} -- config:status
 ## Best Practices
 
 1. **Always inspect before importing** - Use `config:get` and `--no --diff` flags
-2. **Manual edits preferred** - Edit config files directly for precision
+2. **Change config in the site, export one object** - UI / `config:set` / entity API, then `config:get --format=yaml`; hand-editing exported YAML is the exception (it skips dependency calculation), and when you do it, import that one file and confirm with `config:status`
 3. **One config type per commit** - Separate concerns for clean history
 4. **Clear commit messages** - Reference source environment
 5. **Clean up temp files** - Remove temporary YAML files
