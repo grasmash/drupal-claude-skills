@@ -62,7 +62,7 @@ The safe order on the target environment:
 drush @<alias> updatedb -y
 drush @<alias> updatedb:status        # repeat updatedb until "No database updates required"
 
-# 2. Cache rebuild BEFORE import — the container/caches may still describe the old code.
+# 2. Cache rebuild in a fresh process (cheap; see note below).
 drush @<alias> cache:rebuild
 
 # 3. Config import (preview first with --no if unsure).
@@ -71,16 +71,23 @@ drush @<alias> config:import -y
 # 4. Cache rebuild again.
 drush @<alias> cache:rebuild
 
-# 5. Verify. Do not trust the success messages.
+# 5. Deploy hooks: work that needs the imported config (see below).
+drush @<alias> deploy:hook -y
+
+# 6. Verify. Do not trust the success messages.
 drush @<alias> config:status          # expect "No differences"
 drush @<alias> updatedb:status
-drush @<alias> maint:get              # expect 0 (see §3)
+drush @<alias> deploy:hook-status     # expect nothing pending
+drush @<alias> maint:status           # exit 0 = off, exit 3 = still in maintenance (see §3)
 ```
 
-`drush deploy` packages a simpler version: `updatedb` → `config:import` →
-`cache:rebuild` → `deploy:hook`. That is a reasonable baseline. The steps it
-leaves out are the ones above: looping `updatedb`, rebuilding between `updb`
-and `cim`, and checking afterwards.
+`drush deploy` (`DeployCommands::deploy()`) runs `updatedb` →
+`config:import` → `cache:rebuild` → `deploy:hook`, plus `cache:warm` on core
+11.2 and later. That's a reasonable baseline. `updatedb` already flushes all
+caches at the end of its own process (`--cache-clear` defaults to true), so
+the explicit rebuild in step 2 is just one more cheap rebuild in a fresh
+process. What `drush deploy` actually leaves out is **looping `updatedb`**
+until status is clean and **checking the result afterwards**.
 
 **Ordering trap: update hooks run before config import.** A `hook_update_N()`
 in this deploy cannot depend on config, fields, or modules that only arrive
@@ -117,9 +124,13 @@ So:
 exit 137), check:
 
 ```bash
-drush @<alias> maint:get          # 1 = still in maintenance mode
+drush @<alias> maint:status       # exit 3 = still in maintenance mode, exit 0 = off
 drush @<alias> updatedb:status
 ```
+
+`maint:status` is the check to script: `MaintCommands::status()` returns exit
+code 3 when maintenance mode is on. `maint:get` prints `1`/`0` and always
+exits 0.
 
 **Fix.** Finish the updates first (loop `updatedb` until status is clean, and
 check §4's forensics if the run touched data-bearing schema), then clear the
@@ -130,7 +141,7 @@ drush @<alias> maint:set 0
 drush @<alias> cache:rebuild
 ```
 
-**Guard.** Put the `maint:get` check in your deploy script after every `updb`
+**Guard.** Put the `maint:status` check in your deploy script after every `updb`
 pass. If maintenance mode was off before the deploy and is on afterwards, the
 deploy should fail loudly. Wrap the tail in a script so nobody types it by
 hand; hand-typed tails are the ones that skip the post-run check.
@@ -147,8 +158,8 @@ revision), it:
 1. adds the new column,
 2. `SELECT`s **every row into PHP memory**,
 3. **`TRUNCATE`s the table** (that gets it past
-   `FieldStorageConfig::preSave()`'s has-data guard when it saves the new
-   `columns` setting),
+   `SqlContentEntityStorageSchema`'s "cannot change the schema for an
+   existing field … with data" guard when the changed field storage is saved),
 4. updates the installed field schema in key-value and the field storage
    config, then
 5. calls `restoreData()`, which re-inserts the rows through **`batch_set()`**
@@ -169,41 +180,60 @@ finishing:
 
 - the truncate has already been committed (TRUNCATE is not transactional on
   MySQL),
-- the buffered rows lived only in that PHP process and are gone,
 - the hook is already recorded as applied, so the standard "loop `updb` until
   clean" retry **never runs it again**. Nothing re-fires the restore.
+- the only surviving copy of the rows may be the **queued restore
+  operations**. Drush runs `updb` as a progressive batch, so when
+  `batch_set()` appends the restore set, core's `_batch_populate_queue()`
+  writes every operation, with its 50-row chunk as an argument, into the
+  `queue` table under `drupal_batch:<batch id>:<set>`. If the process died
+  **before** `batch_set()` ran, for example during the truncate loop or the
+  config save, no copy exists anywhere and only a backup can help.
+
+Those orphaned items don't last forever. On cron, `DatabaseQueue::garbageCollection()`
+deletes `drupal_batch:%` items older than 10 days, and
+`BatchStorage::cleanup()` removes `batch` rows of the same age.
 
 The empty field usually throws no error. Empty values are valid, so pages and
 APIs just render blank. Users notice before monitoring does.
 
-**Guard (pick one) for any field that has data:**
+**Guard: snapshot in the same hook, before calling `addColumn()`**, for any
+field that has data:
 
-- **Snapshot in the same hook, before calling `addColumn()`:**
-
-  ```php
-  function my_module_update_10001(): void {
-    $db = \Drupal::database();
-    foreach (['node__field_example', 'node_revision__field_example'] as $table) {
-      $backup = '_backup_' . $table . '_10001';
-      if ($db->schema()->tableExists($table) && !$db->schema()->tableExists($backup)) {
-        $db->query("CREATE TABLE {{$backup}} AS SELECT * FROM {{$table}}");
-      }
+```php
+function my_module_update_10001(): void {
+  $db = \Drupal::database();
+  $tables = [
+    'node__field_example' => '_bak_10001_data',
+    'node_revision__field_example' => '_bak_10001_rev',
+  ];
+  foreach ($tables as $table => $backup) {
+    if ($db->schema()->tableExists($table) && !$db->schema()->tableExists($backup)) {
+      // Two statements, not CREATE TABLE ... AS SELECT (see caveats).
+      $db->query("CREATE TABLE {{$backup}} LIKE {{$table}}");
+      $db->query("INSERT INTO {{$backup}} SELECT * FROM {{$table}}");
     }
-    \Drupal::service('custom_field.update_manager')
-      ->addColumn('node', 'field_example', 'new_property', 'string');
   }
-  ```
+  \Drupal::service('custom_field.update_manager')
+    ->addColumn('node', 'field_example', 'new_property', 'string');
+}
+```
 
-  Drop the backup tables in a later update, after you've confirmed the row
-  counts match. (Check the service id and signature against your installed
-  version.)
+Caveats (MySQL/MariaDB):
 
-- **Do the non-destructive equivalent by hand:** add the column with
-  `$schema->addField()` on each dedicated table, update the installed schema
-  under the `entity.storage_schema.sql` key-value collection
-  (`<entity_type>.field_schema_data.<field>`), and write the new `columns`
-  setting onto the field storage config. That's everything `addColumn()` does
-  except the truncate.
+- `CREATE TABLE … AS SELECT` is rejected when `enforce_gtid_consistency` is on
+  before MySQL 8.0.21, which is common on managed and replicated databases.
+  `CREATE TABLE … LIKE` followed by `INSERT … SELECT` avoids that.
+- Identifiers are capped at 64 characters, and that limit includes any
+  database table prefix. `_backup_` + a long revision table name + a suffix
+  goes over it easily, so use short fixed backup names as above.
+
+Drop the backup tables in a later update, once you've confirmed the row
+counts match. (Check the service id and signature against your installed
+version.) Don't try to recreate `addColumn()`'s schema changes by hand
+without the truncate. The field-storage update path enforces the has-data
+guard and the related installed-definition bookkeeping, so a partial copy
+throws or leaves the installed schema inconsistent.
 
 Also rehearse the **interrupted** case on a copy of production data. A
 rehearsal where `updb` survives will pass; data is only lost when the run is
@@ -221,6 +251,17 @@ interrupted.
 
 Before you trust that a deploy's `updb` finished, check both the `batch` and
 `queue` tables.
+
+**Recovery: read from code, never exercised.** If restore items are present,
+**back up the `queue` table first**. Then inspect them **before** you restore
+an older backup or re-run anything. Each item's `data` column is a PHP-serialized
+`[callable, [table_name, rows, total_rows, chunk_total, chunk_index]]`.
+Unserialize it (with Drupal bootstrapped, since the callable references the
+module's service) and you have the rows as they were just before the
+truncate, which is newer than any pre-deploy backup. Re-insert them into the
+named table with an explicit column list. Rows written after the wipe win;
+skip duplicates on the primary key. Do it before the 10-day garbage
+collection above, or pause cron until you're done.
 
 ## 5. Update hooks that write a shared external store re-fire
 
@@ -340,15 +381,28 @@ Failure modes:
   catches it and logs it **only at debug level**
   ("Could not instantiate …"). The command just doesn't exist. Add
   `public static function create(ContainerInterface $container): static`.
-- **Shadowed logger.** A `DrushCommands` subclass that declares its own
-  `$logger` property, including a constructor-promoted
-  `protected LoggerInterface $logger`. `DrushCommands::logger()` asserts that
-  the property is null or a `DrushLoggerManager`, and
-  `ServiceManager::inflect()` calls `logger()` while it wires every
-  instance. Put a plain PSR logger in that slot and the assertion fires during
-  Drush bootstrap. With assertions enabled (`zend.assertions=1`, typical on
-  dev), that takes down **every** Drush command. Name the property something
-  else (`$channelLogger`), or use `$this->logger()`.
+- **Shadowed logger.** A `DrushCommands` subclass that redeclares `$logger`,
+  directly or as a constructor-promoted parameter. `DrushCommands` gets the
+  property from psr/log's `LoggerAwareTrait`, typed
+  `protected ?LoggerInterface $logger` in psr/log 3.x. What happens next
+  depends on the type you redeclare it with (checked on PHP 8.5, psr/log
+  3.0.2, Drush 13.7):
+  - **Non-nullable** (`protected LoggerInterface $logger`): a compile-time
+    fatal ("Type of …::$logger must be ?LoggerInterface"). That can't be
+    caught, so the Drush process dies the moment the class loads, whatever the
+    assertion settings. Discovery reflects every discovered class, so in
+    practice that's every command.
+  - **Compatible** (`?LoggerInterface`) holding a non-Drush logger:
+    `ServiceManager::inflect()` calls `DrushCommands::logger()`, whose
+    `assert()` fails (`AssertionError` if `zend.assertions=1`). Otherwise its
+    `?DrushLoggerManager` return type throws a `TypeError`. On the
+    autodiscovery path, `instantiateServices()` catches that and logs it at
+    debug, so **that one command vanishes**. On the `drush.services.yml`
+    path, `DrupalBoot8` calls `inflect()` outside any try/catch, so it
+    **takes down every command** that bootstraps Drupal.
+
+  Name the property something else (`$channelLogger`), or use
+  `$this->logger()`.
 
 Watch out when fixing a "dead command" by moving it into a reachable path:
 that's the first time anything constructs the class. A latent shadowed-logger
@@ -404,9 +458,13 @@ request, so the result is a site-wide fatal:
   `vendor/composer/installed.php` has `'dev' => false` under `root` for a
   `--no-dev` build. Fail the check if it's `true`, or if dev-only packages
   (phpunit, etc.) show up in the committed classmap.
-- Don't "prepare a push" by running `composer install --no-dev` in your
-  working copy: `git push` ships commits, not the working tree. Build the
-  production vendor in a separate checkout, or in CI.
+- Running `composer install --no-dev -o` before committing vendor is correct.
+  The hazards are committing what comes **after** it and committing only
+  part of it. If you run `composer install` again to get your dev tools back,
+  don't commit that result: it's a dev autoloader. And always commit all
+  three suffix files together. A push that doesn't touch packages doesn't
+  need a vendor rebuild at all, because `git push` ships commits, not the
+  working tree.
 - Don't fix a skew by regenerating in a throwaway checkout and copying files
   back. The optimized classmap comes from scanning files **on disk**, so a
   checkout that lacks untracked package files produces a smaller classmap.
@@ -420,10 +478,10 @@ request, so the result is a site-wide fatal:
 - [ ] Every change has a stated deploy path: config import, update/deploy hook, or a written command list with no breakage window.
 - [ ] Config was exported per item from a real entity save, and `dependencies` are present.
 - [ ] No update hook relies on config/modules that arrive in the same import. Modules are enabled in the hook, or the work is in a deploy hook.
-- [ ] The tail is scripted: loop `updatedb` until status is clean → `cr` → `config:import` → `cr` → `config:status` clean.
-- [ ] `maint:get` is checked after every `updb` pass, and the flag is cleared explicitly after a killed run.
+- [ ] The tail is scripted: loop `updatedb` until status is clean → `cr` → `config:import` → `cr` → `deploy:hook` → `config:status` clean, `deploy:hook-status` empty.
+- [ ] `maint:status` (exit 3 = on) is checked after every `updb` pass, and the flag is cleared explicitly after a killed run.
 - [ ] No `custom_field` `addColumn()` / `addExtraColumns()` / `removeColumn()` on a data-bearing field without a same-hook snapshot. The interrupted case has been rehearsed.
-- [ ] After a suspect run, the `batch` and `queue` tables are checked for orphans and field table row counts compared.
+- [ ] After a suspect run, the `batch` and `queue` tables are checked (and the queued restore rows preserved) before any backup restore or re-run, and field table row counts compared.
 - [ ] No update hook writes an external store unless it's gated on durable per-item state and skipped off production. One-time hooks are neutered in place.
 - [ ] Static service-arity test passes (`*.services.yml` and `drush.services.yml`).
 - [ ] Drush discovery test passes. Custom commands appear in `drush list` on the target.
