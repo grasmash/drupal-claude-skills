@@ -87,6 +87,13 @@ Then add the agent workflow guide from [AGENTS.md](AGENTS.md) to your project's 
 | **[drupal-search-api](skills/drupal-search-api/)** | Search API — index configuration, boost processors, custom processors, config management, reindexing |
 | **[skill-developer](skills/skill-developer/)** | Meta-skill for creating new skills — agentskills.io spec, frontmatter schema, progressive disclosure, 500-line rule |
 
+**Design QA**
+
+| Skill | Description |
+|-------|-------------|
+| **[design-review](skills/design-review/)** | Live-environment design/QA pass for UI changes — 7 review phases, mockup parity, a11y, triage-matrix reporting, the layout-topology gate, the Tailwind computed-styles trap |
+| **[mockup-parity](skills/mockup-parity/)** | Porting static HTML mockups into themed Twig/SDC routes — two-gate reconciliation workflow, delta classification, capability preservation, visual diff ledger |
+
 **Tooling & Observability**
 
 | Skill | Description |
