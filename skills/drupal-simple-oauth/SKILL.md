@@ -9,7 +9,7 @@ Comprehensive patterns for working with the simple_oauth module for OAuth2 authe
 
 ## Version Information
 
-- simple_oauth: 6.0.9
+- Verified against simple_oauth 6.1.1 (consumers 8.x-1.24); line numbers below refer to that release
 - Scope provider: dynamic (role-based granularity)
 - Current Drupal: 10.x/11.x compatible
 
@@ -19,7 +19,7 @@ Comprehensive patterns for working with the simple_oauth module for OAuth2 authe
 
 When a request is authenticated with an OAuth token, Drupal wraps the user in a `TokenAuthUser` decorator that enforces BOTH token AND user permissions.
 
-**Location:** `/docroot/modules/contrib/simple_oauth/src/Authentication/TokenAuthUser.php`
+**Location:** `<webroot>/modules/contrib/simple_oauth/src/Authentication/TokenAuthUser.php` (`<webroot>` is `web/` or `docroot/` depending on the project)
 
 #### Permission Check Logic (Line 95)
 
@@ -36,7 +36,7 @@ public function hasPermission($permission) {
 
 **Critical Rule:** BOTH the token AND the user must have the permission (AND condition).
 
-#### Role Intersection Logic (Line 109)
+#### Role Intersection Logic (Line 107)
 
 ```php
 public function getRoles($exclude_locked_roles = FALSE) {
@@ -101,8 +101,8 @@ formData.append('scope', 'administrator');
 **Check existing scopes:**
 ```bash
 ddev drush config:get simple_oauth.settings
-# Or query scope entities
-ddev drush sqlq "SELECT id FROM consumer_scopes"
+# Or list scope entities (config entities named simple_oauth.oauth2_scope.<id>)
+ddev drush sqlq "SELECT name FROM config WHERE name LIKE 'simple_oauth.oauth2_scope.%' ORDER BY name"
 ```
 
 ### Pitfall 3: Authenticated Role Permissions
@@ -111,7 +111,7 @@ ddev drush sqlq "SELECT id FROM consumer_scopes"
 
 **Reality:** Only if the token includes the authenticated role in its scope intersection.
 
-**From Role.php (line 94):**
+**From `src/Plugin/ScopeGranularity/Role.php` (line 95):**
 ```php
 // Scopes automatically grant authenticated role
 return $exclude_locked_roles ? [$role] : [AccountInterface::AUTHENTICATED_ROLE, $role];
@@ -175,14 +175,19 @@ Store `client_id` and `client_secret` securely in your app configuration (e.g., 
 ### Creating OAuth Clients
 
 ```bash
-# Via Drush
-ddev drush simple-oauth:create-client \
-  --label="Mobile App" \
-  --secret="your-secret" \
-  --confidential \
-  --user-id=1
+# simple_oauth ships no Drush command for creating clients (its only command is
+# simple-oauth:generate-keys). Clients are `consumer` content entities:
+# Via UI: /admin/config/services/consumer/add
 
-# Or via UI: /admin/config/people/simple_oauth
+# Or via the entity API
+ddev drush php:eval '\Drupal::entityTypeManager()->getStorage("consumer")->create([
+  "label" => "Mobile App",
+  "client_id" => "mobile_app",
+  "secret" => "your-secret",
+  "confidential" => TRUE,
+  "grant_types" => ["password", "refresh_token"],
+  "scopes" => ["authenticated"],
+])->save();'
 ```
 
 ### Consumer TTLs and Social Login Audiences
@@ -197,16 +202,24 @@ Details and code: [references/consumer-ttls-and-social-grant.md](references/cons
 ### Creating Scope Entities
 
 ```yaml
-# Via config: config/install/consumer.oauth2_scope.subscriber.yml
-uuid: YOUR-UUID
+# Via config: config/install/simple_oauth.oauth2_scope.subscriber.yml
 langcode: en
 status: true
 id: subscriber
+name: subscriber
 description: 'Subscriber role access'
-grant_user_permissions: true
+grant_types:
+  refresh_token:
+    status: true
+    description: ''
+  password:            # provided by the simple_oauth_password_grant submodule
+    status: true
+    description: ''
 umbrella: false
-granularity: role
-parent: null
+parent: _none
+granularity_id: role
+granularity_configuration:
+  role: subscriber
 ```
 
 ### Dynamic Scope Provider Configuration
@@ -221,8 +234,8 @@ With dynamic scope provider, scopes map directly to roles.
 ### Listing Scopes
 
 ```bash
-# Via SQL
-ddev drush sqlq "SELECT id, description FROM consumer_scopes ORDER BY id"
+# Via SQL (scopes are config entities, stored in the config table)
+ddev drush sqlq "SELECT name FROM config WHERE name LIKE 'simple_oauth.oauth2_scope.%' ORDER BY name"
 
 # Via config
 ddev drush config:get simple_oauth.oauth2_scope.subscriber
@@ -289,7 +302,7 @@ Always test OAuth with regular users.
 When OAuth permissions fail:
 
 - [ ] Does the OAuth2 scope entity exist?
-  - `ddev drush sqlq "SELECT id FROM consumer_scopes WHERE id='SCOPE_NAME'"`
+  - `ddev drush config:get simple_oauth.oauth2_scope.SCOPE_NAME`
 - [ ] Does the user have the required role?
   - `ddev drush user:role:list username@example.com`
 - [ ] Does the role have the required permission?
@@ -318,10 +331,13 @@ When OAuth permissions fail:
 
 ```bash
 # List OAuth clients
-ddev drush sqlq "SELECT label, uuid FROM consumer"
+ddev drush sqlq "SELECT label, client_id FROM consumer_field_data"
 
 # List OAuth scopes
-ddev drush sqlq "SELECT id, description FROM consumer_scopes"
+ddev drush sqlq "SELECT name FROM config WHERE name LIKE 'simple_oauth.oauth2_scope.%' ORDER BY name"
+
+# List each client's default scopes (multi-value consumer base field `scopes`)
+ddev drush php:eval 'foreach (\Drupal::entityTypeManager()->getStorage("consumer")->loadMultiple() as $c) { print $c->label() . ": " . implode(", ", array_column($c->get("scopes")->getValue(), "scope_id")) . PHP_EOL; }'
 
 # Check user roles
 ddev drush user:role:list username@example.com
@@ -348,7 +364,7 @@ curl -X POST "https://yoursite.ddev.site/oauth/token" \
 ## Key Files Reference
 
 - `TokenAuthUser.php` - Core authentication wrapper with AND permission logic
-- `Role.php` - Dynamic scope to role mapping (line 94: authenticated role grant)
+- `Role.php` - Dynamic scope to role mapping (line 95: authenticated role grant)
 - `field_permissions.module` - Field access hook (line 34)
 - `CustomAccess.php` - Field permission type (line 36: hasPermission call)
 - `src/Session/BearerSessionConfiguration.php` - CSRF bypass decorator for Bearer tokens (custom module)

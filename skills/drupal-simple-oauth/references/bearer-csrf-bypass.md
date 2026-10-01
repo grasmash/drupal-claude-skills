@@ -18,7 +18,7 @@ When a client (especially React Native apps) sends a request with BOTH a valid B
 
 Create a custom module (e.g., `oauth_csrf_bypass`) that decorates the `session_configuration` service to return `FALSE` for `hasSession()` when a valid Bearer token is present, preventing unnecessary CSRF checks.
 
-**Location:** `docroot/modules/custom/{module_name}/`
+**Location:** `<webroot>/modules/custom/{module_name}/` (`<webroot>` is `web/` or `docroot/`)
 
 ### How It Works
 

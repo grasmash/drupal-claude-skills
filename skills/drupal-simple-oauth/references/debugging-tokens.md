@@ -8,7 +8,7 @@ Step-by-step token and permission debugging, moved from SKILL.md.
 
 ```bash
 # List all OAuth2 scopes
-ddev drush sqlq "SELECT id, description FROM consumer_scopes"
+ddev drush sqlq "SELECT name FROM config WHERE name LIKE 'simple_oauth.oauth2_scope.%' ORDER BY name"
 
 # Example scopes you might have:
 # - authenticated
