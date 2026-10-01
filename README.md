@@ -72,7 +72,7 @@ Then add the agent workflow guide from [AGENTS.md](AGENTS.md) to your project's 
 
 | Skill | Description |
 |-------|-------------|
-| **[drupal-at-your-fingertips](skills/drupal-at-your-fingertips/)** | 50+ Drupal topics from [Selwyn Polit's book](https://drupalatyourfingertips.com) — services, hooks, entities, forms, theming, caching, testing |
+| **[drupal-at-your-fingertips](skills/drupal-at-your-fingertips/)** | Core API patterns from [Selwyn Polit's book](https://drupalatyourfingertips.com) — 14 topics in depth (services, hooks, events, plugins, entities, forms, routes, Twig, caching, AJAX, queries, config, Paragraphs, DTT), the other 39 chapters linked online |
 | **[drupal-config-mgmt](skills/drupal-config-mgmt/)** | Configuration management — safe import/export, config splits (complete vs partial), environment syncing, merge workflows |
 | **[drupal-config-reconcile](skills/drupal-config-reconcile/)** | Resolve config drift item-by-item against a deployed env — import vs export vs skip, verify with the import transformer, never write to prod |
 | **[drupal-contrib-mgmt](skills/drupal-contrib-mgmt/)** | Contrib module management — Composer updates, composer-patches v2 (`patches.lock.json` + relock), Drupal 11 compatibility, drupal.org workflow |
@@ -165,31 +165,31 @@ You can also invoke skills explicitly:
 ## Repository Structure
 
 ```
-skills/                              # Skills (agentskills.io format)
-├── drupal-at-your-fingertips/       #   50+ Drupal topics
-│   ├── SKILL.md
-│   └── references/
-├── drupal-config-mgmt/              #   Config management
-│   ├── SKILL.md
-│   └── references/
-├── drupal-contrib-mgmt/             #   Module management
-│   ├── SKILL.md
-│   ├── references/
-│   └── examples/
-├── drupal-ddev/                     #   DDEV local dev
-│   ├── SKILL.md
-│   └── references/
-├── ivangrynenko-cursorrules-drupal/ #   Security patterns
-│   ├── SKILL.md
-│   └── references/
-├── drupal-simple-oauth/             #   OAuth2 patterns
-│   └── SKILL.md
-├── drupal-search-api/               #   Search API patterns
-│   └── SKILL.md
-├── drupal-canvas/                   #   Canvas components
-│   └── SKILL.md
-└── skill-developer/                 #   Meta-skill for creating skills
-    └── SKILL.md
+skills/                              # One dir per skill: SKILL.md + optional references/, examples/, scripts/
+├── acquia-source/
+├── canvas-contribution/
+├── claude-code-mcp-setup/
+├── design-review/
+├── drupal-api-endpoints/
+├── drupal-at-your-fingertips/
+├── drupal-canvas/
+├── drupal-canvas-sdc/
+├── drupal-config-mgmt/
+├── drupal-config-reconcile/
+├── drupal-contrib-mgmt/
+├── drupal-ddev/
+├── drupal-deploy-safety/
+├── drupal-mail/
+├── drupal-performance/
+├── drupal-search-api/
+├── drupal-simple-oauth/
+├── drupal-testing/
+├── drupal-views-patterns/
+├── drupal-vite-theme/
+├── ivangrynenko-cursorrules-drupal/
+├── mockup-parity/
+├── sentry-integration/
+└── skill-developer/
 .claude/
 ├── agents/                          # Agent definitions
 │   ├── quality-gate.md

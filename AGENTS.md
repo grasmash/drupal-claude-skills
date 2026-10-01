@@ -80,7 +80,9 @@ NEVER directly edit files in `docroot/modules/contrib/` or `docroot/core/`. All 
 
 1. Create a `.patch` file in `patches/`
 2. Register it in `composer.json` under `extra.patches`
-3. Run `composer install` to apply
+3. Run `composer patches-relock` to add the patch to `patches.lock.json`. composer-patches v2 applies patches from the lock file, not from `composer.json`, so without the relock a new patch is silently dropped on every clean install.
+4. Run `composer install` to apply
+5. Commit the patch, `composer.json`, `patches.lock.json`, and the patched contrib file (hosts that deploy committed git state never run `composer install`)
 
 Direct edits get overwritten by `composer install`/`composer update`. See the `drupal-contrib-mgmt` skill for full patch management workflows.
 

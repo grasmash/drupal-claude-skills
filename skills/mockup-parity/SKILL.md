@@ -1,13 +1,13 @@
 ---
 name: mockup-parity
-description: Use when porting a static HTML mockup screen into a themed Twig/SDC route, conforming an existing route to its mockup, or executing any parity/reskin work item. Load alongside design-review for any parity work.
+description: "Workflow for porting static HTML mockups into themed Drupal Twig/SDC routes without dropping working capabilities: a two-gate reconciliation process, per-delta classification (style, structural, or conflict with a prior decision), fixing through shared components, and a Playwright-verified visual diff ledger. Use when porting a mockup screen into a route, conforming an existing route to its mockup, or executing any parity or reskin work item. Load alongside design-review."
 ---
 
 # Mockup Parity (Twig/SDC)
 
 The reskin goal: build a themed route that is as true to the approved static mockup as possible, without dropping any working capability. Judgment is required — the mockup is binding canon for *visuals*, not license to remove functionality it happens not to show.
 
-This skill assumes a canon of static HTML mockups plus a single CSS token source (e.g. Tailwind `@theme` tokens emitted by the mockup generator), with Playwright as the verification tool. It was distilled from parity workflows originally built for other stacks (a mobile app with a Jest parity-manifest harness, a two-human-gate port process); the two-gate discipline survives here as a lightweight process rather than tooling.
+This skill assumes a canon of static HTML mockups plus a single CSS token source (e.g. Tailwind `@theme` tokens emitted by the mockup generator), with Playwright as the verification tool. The two-gate discipline below is a lightweight process, not tooling.
 
 ## Order of operations (per screen)
 

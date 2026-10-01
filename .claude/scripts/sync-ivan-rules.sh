@@ -10,7 +10,7 @@ set -e
 UPSTREAM_REPO="https://raw.githubusercontent.com/ivangrynenko/cursorrules/main/.cursor/rules"
 UPSTREAM_API="https://api.github.com/repos/ivangrynenko/cursorrules/contents/.cursor/rules"
 UPSTREAM_URL="https://github.com/ivangrynenko/cursorrules/blob/main/.cursor/rules"
-SKILLS_DIR=".claude/skills"
+SKILLS_DIR="skills"
 SKILL_NAME="ivangrynenko-cursorrules-drupal"
 SKILL_DIR="$SKILLS_DIR/$SKILL_NAME"
 
@@ -26,7 +26,7 @@ create_security_skill() {
   cat > "$SKILL_DIR/SKILL.md" <<'EOT'
 ---
 name: ivangrynenko-cursorrules-drupal
-description: Drupal development and security patterns from Ivan Grynenko's cursor rules. Covers OWASP Top 10, authentication, access control, injection prevention, cryptography, configuration, database standards, file permissions, and more.
+description: "Drupal security and coding rules from Ivan Grynenko's cursorrules, organised by OWASP Top 10 (2021) category: authentication, access control, injection (SQL, XSS), cryptographic failures, security misconfiguration, vulnerable dependencies, SSRF, insecure design, integrity, and logging, plus database standards and file permissions. Use when writing or reviewing Drupal code for security, handling user input, building queries, handling file uploads, adding permission or access checks, making outbound HTTP requests, or preparing a security review."
 ---
 
 # Ivan Grynenko - Drupal Cursor Rules
@@ -270,5 +270,5 @@ done
 echo ""
 echo "✅ Done! ivangrynenko-cursorrules-drupal skill created"
 echo ""
-echo "Skill: .claude/skills/ivangrynenko-cursorrules-drupal/"
+echo "Skill: skills/ivangrynenko-cursorrules-drupal/"
 echo "References: $topic_count topic reference files"
