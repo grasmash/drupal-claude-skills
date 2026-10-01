@@ -451,6 +451,9 @@ ddev drush config:import --partial
 ```
 
 **Full config sync via rsync**:
+
+> **Caution:** a remote `cex` writes every drifted config object on that environment, and a local `cim` imports (and deletes) everything that differs. Never run a blanket export/import against a shared or remote environment as a casual step — prefer the single-config method above, and review the full diff before anything is imported. See [surgical-config.md](references/surgical-config.md).
+
 ```bash
 terminus drush {site}.{env} -- cex
 terminus rsync {site}.{env}:code/config/default /tmp/remote
@@ -477,6 +480,7 @@ See [examples.md](references/examples.md) for detailed workflows.
 
 For comprehensive technical documentation, see:
 - **[config-split-deep-dive.md](references/config-split-deep-dive.md)** - Complete technical reference on Config Split 2.0, patch files, export/import process, and dependency handling
+- **[surgical-config.md](references/surgical-config.md)** - One-config-at-a-time export/set/delete for agents, the `core.extension.yml` exception, raw config writes that drop `dependencies`, baked (PHP-computed) config, and verifying imports with `config:status`
 - [examples.md](references/examples.md) - Practical examples and workflows
 
 ## Config Status Check
@@ -530,7 +534,7 @@ ddev drush cex  # Export to save activation state
 
 ### Config deleted from config/default on export
 
-**COMMON ISSUE**: Config (like `search_api.server.pantheon_search`) gets removed from `config/default/` when you run `drush cex`.
+**COMMON ISSUE**: Config (like `search_api.server.my_search_server`) gets removed from `config/default/` when you run `drush cex`.
 
 **Root cause (99% of cases)**: Config is in `complete_list` instead of `partial_list`!
 
@@ -550,13 +554,13 @@ grep -A10 "partial_list:" config/default/config_split.config_split.local.yml
 
 ```bash
 # Edit the split definition
-# Move: search_api.server.pantheon_search
+# Move: search_api.server.my_search_server
 # FROM: complete_list
 # TO: partial_list
 
 ddev drush cex  # Re-export
-# Check that config/default/search_api.server.pantheon_search.yml exists
-# Check that config/local/config_split.patch.search_api.server.pantheon_search.yml exists
+# Check that config/default/search_api.server.my_search_server.yml exists
+# Check that config/local/config_split.patch.search_api.server.my_search_server.yml exists
 ```
 
 See [config-split-deep-dive.md](references/config-split-deep-dive.md) for complete technical explanation.

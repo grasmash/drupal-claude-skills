@@ -281,6 +281,13 @@ ddev drush simple-oauth:create-client \
 # Or via UI: /admin/config/people/simple_oauth
 ```
 
+### Consumer TTLs and Social Login Audiences
+
+- **Consumer token TTLs are content-entity data, not config.** `cim` never deploys them; change them in a `hook_update_N()` that loads the consumer by `client_id`.
+- **A social/Google token grant must check `aud` against an allow-list.** Mobile apps mint tokens under their own client ids, so a single expected `aud` fails every app login closed.
+
+Details and code: [references/consumer-ttls-and-social-grant.md](references/consumer-ttls-and-social-grant.md).
+
 ## Scope Entity Management
 
 ### Creating Scope Entities

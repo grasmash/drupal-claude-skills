@@ -41,6 +41,7 @@ Activates when working with DDEV local development including:
 - @references/hooks.md - Pre/post hooks automation
 - @references/performance.md - Optimizing DDEV performance
 - @references/multisite.md - Multi-site configuration
+- @references/load-and-recovery.md - Host CPU saturation, post-crash recovery traps, trimming the Mutagen payload, Kernel tests on a throwaway DB, coordinating multiple agents on one project
 
 See `/references/` directory for complete documentation.
 
@@ -276,6 +277,10 @@ a time — if multiple agent sessions or terminals share the same DDEV
 instance, serialize `ddev start`/`ddev mutagen reset` behind a single lock;
 ownership rotating mid-recovery manufactures mangled containers.
 
+To shrink the sync payload, customize `.ddev/mutagen/mutagen.yml` (remove the
+`#ddev-generated` header first; never ignore `node_modules` globally) — see
+[load-and-recovery.md](references/load-and-recovery.md#trimming-the-mutagen-payload).
+
 ### NFS Mount (Alternative for macOS)
 
 ```yaml
@@ -318,7 +323,9 @@ class); save full-suite runs for batch close. If multiple agent sessions
 share one local DDEV instance, serialize container-disruptive or
 memory-heavy operations (`ddev restart`, `drush cr`, phpunit, Playwright,
 theme builds) behind a lock — N agents hitting one Docker VM concurrently
-means OOM, Mutagen desync, and stale-code WSODs.
+means OOM, Mutagen desync, and stale-code WSODs. Lock design (exclusive vs
+counting-semaphore tiers, coalesced cache rebuilds):
+[load-and-recovery.md](references/load-and-recovery.md#coordinating-multiple-agents-on-one-ddev-project).
 
 ### Where to Run Kernel Suites
 
@@ -326,7 +333,9 @@ Kernel-test IO is dominated by the macOS bind mount, not the database driver.
 SQLite (`SIMPLETEST_DB=sqlite://...`) is a verified-compatible KernelTestBase
 backend, but it does NOT fix mount IO — a secondary lever, not the fix. If
 Kernel-heavy suites get slow locally, prefer running them in CI rather than
-laptop-only runs.
+laptop-only runs. KernelTestBase never needs the site DB: a throwaway MariaDB
+container plus `SIMPLETEST_DB` decouples Kernel runs from DDEV entirely —
+see [load-and-recovery.md](references/load-and-recovery.md#kernel-tests-against-a-throwaway-database).
 
 ---
 
@@ -523,7 +532,16 @@ docker ps                  # if this responds while `docker version` hangs, engi
 **Fix**: `killall -9 com.docker.backend && open -a Docker`, poll `docker ps`
 until it responds, then `ddev start`. Don't keep iterating on ddev-level
 fixes (poweroff/mutagen reset/etc.) while the engine itself is down — none
-of them can succeed.
+of them can succeed. After the restart, watch for orphan containers and a
+slow first drush: [post-crash traps](references/load-and-recovery.md#post-docker-crash-recovery-traps).
+
+### Host CPU Saturation (Containers Healthy, Requests Hang)
+
+Host load well above core count; containers healthy and `php -v` instant, but
+every request and drush bootstrap hangs (php-fpm workers blocked in
+`request_wait_answer` on a stalled virtiofs bridge). No DDEV recovery fixes it
+until load drops — shed load, then one `ddev poweroff && ddev start`. Details:
+[load-and-recovery.md](references/load-and-recovery.md#host-cpu-saturation-containers-healthy-requests-hang).
 
 ### Post-Recovery 404s With Route-Discovery Warnings
 

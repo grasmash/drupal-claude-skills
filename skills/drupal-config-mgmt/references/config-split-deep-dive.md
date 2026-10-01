@@ -74,7 +74,7 @@ DELETED - file does not exist
 
 **File in split directory:**
 ```yaml
-# config/local/config_split.patch.search_api.index.mixed_entities.yml
+# config/local/config_split.patch.search_api.index.content_index.yml
 adding:
   dependencies:
     config:
@@ -83,13 +83,13 @@ adding:
 removing:
   dependencies:
     module:
-      - gg_search
+      - my_module_search
   server: null
 ```
 
 **File in default:**
 ```
-config/default/search_api.index.mixed_entities.yml  (full base config)
+config/default/search_api.index.content_index.yml  (full base config)
 ```
 
 **Use cases:**
@@ -121,7 +121,7 @@ These are FULL config files, identical in structure to what would be in `config/
 Format: `config_split.patch.{config_name}.yml`
 
 Examples:
-- `config_split.patch.search_api.index.mixed_entities.yml`
+- `config_split.patch.search_api.index.content_index.yml`
 - `config_split.patch.node.type.article.yml`
 - `config_split.patch.system.performance.yml`
 
@@ -146,7 +146,7 @@ removing:
   server: null  # Removes the key entirely
   dependencies:
     module:
-      - gg_search  # Removes this module from dependency list
+      - my_module_search  # Removes this module from dependency list
 ```
 
 ### Important Notes on Patch Semantics
@@ -204,7 +204,7 @@ From the issue queue (#3232667):
 
 All search indexes that reference this server automatically get patches:
 ```yaml
-# config/local/config_split.patch.search_api.index.mixed_entities.yml
+# config/local/config_split.patch.search_api.index.content_index.yml
 adding:
   server: pantheon_search  # Re-add the server reference when local split is active
   dependencies:
@@ -249,9 +249,9 @@ partial_list: {}
 **Files in `config/local/`:**
 ```
 search_api.server.pantheon_search.yml (FULL FILE - complete split)
-config_split.patch.search_api.index.mixed_entities.yml (PATCH - auto-generated dependency)
-config_split.patch.search_api.index.mobile_content.yml (PATCH - auto-generated dependency)
-config_split.patch.search_api.index.teleport_groups.yml (PATCH - auto-generated dependency)
+config_split.patch.search_api.index.content_index.yml (PATCH - auto-generated dependency)
+config_split.patch.search_api.index.mobile_index.yml (PATCH - auto-generated dependency)
+config_split.patch.search_api.index.groups.yml (PATCH - auto-generated dependency)
 config_split.patch.search_api.index.users.yml (PATCH - auto-generated dependency)
 ```
 

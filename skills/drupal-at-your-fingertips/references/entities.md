@@ -241,10 +241,10 @@ if ($entity->getEntityTypeId() === 'node' && $entity->bundle() === 'article') {
 
 **Add field constraints**:
 ```php
-function gg_example_entity_bundle_field_info_alter(&$fields, EntityTypeInterface $entity_type, $bundle) {
-  if ($entity_type->id() === 'node' && $bundle === 'song') {
-    if (!empty($fields['field_difficulty'])) {
-      $fields['field_difficulty']->setPropertyConstraints('value', [
+function my_module_entity_bundle_field_info_alter(&$fields, EntityTypeInterface $entity_type, $bundle) {
+  if ($entity_type->id() === 'node' && $bundle === 'article') {
+    if (!empty($fields['field_reading_level'])) {
+      $fields['field_reading_level']->setPropertyConstraints('value', [
         'Range' => ['min' => 1, 'max' => 5],
       ]);
     }
