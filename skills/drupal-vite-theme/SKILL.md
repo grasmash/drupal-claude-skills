@@ -86,10 +86,13 @@ this order, later wins:
    `['overrides']['<extension>/<library>'][<key>]`
 
 The global setting reads `Settings` only, with no dependency on the extension
-list, so it covers every Vite-managed library from every module and theme. One
-production incident behind this skill found the info.yml key alone did not stop
-the probe on authenticated web requests while it did in drush; treat
-info.yml-only as insufficient. Note that a library or info file explicitly
+list, so it covers every Vite-managed library from every module and theme.
+`getViteSettingFromExtensionDefinition()` does read the info.yml `vite:` block,
+but the info.yml key alone has been observed to still let the probe fire on
+authenticated web requests while drush showed it disabled; the cause was not
+identified. Do not trust either layer on faith: verify the effective behaviour
+on the deployed environment with a cold render (`drush cr`, then time the
+first authenticated request; see Detect below). Note that a library or info file explicitly
 setting `useDevServer: auto`/`true` beats the global default. To force it off
 regardless, use `$settings['vite']['overrides']['mytheme']['useDevServer'] = FALSE`.
 
@@ -149,9 +152,12 @@ cache-clear query string only when it does not. So a JS fix shipped under an
 unchanged `version:` keeps the **same URL**: `drush cr` cannot bust browser or
 CDN caches for it. (Unaggregated CSS always gets the cache-clear query string.)
 
-**Detect (stale-asset check):** a JS/CSS fix that "works locally but not in
-prod", "works in incognito", or "keeps regressing" is a frozen URL until proven
-otherwise:
+**Detect (stale-asset check):** a JS fix on a `version:`-pinned library that
+"works locally but not in prod", "works in incognito", or "keeps regressing" is
+a frozen URL until proven otherwise. Only unaggregated (`preprocess: false`)
+JS is exposed: core's aggregated assets get filenames hashed from file contents
+(`AssetGroupSetHashTrait::generateHash()` replaces the version with a content
+hash, used by `JsCollectionOptimizerLazy`), so they change when the file does:
 
 ```bash
 curl -s https://{site}/{route} | grep -o '{asset-name}[^"]*'
