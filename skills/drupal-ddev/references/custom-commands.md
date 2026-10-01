@@ -24,7 +24,12 @@ drush sql-drop -y
 # a `site:install standard` followed by `config:import` fails, because the new
 # site's UUID never matches the exported system.site UUID
 # (SystemConfigSubscriber rejects the import).
-if [ -f /var/www/html/config/default/system.site.yml ]; then
+# `si --existing-config` needs two things: $settings['config_sync_directory']
+# set to an existing directory, and a core.extension.yml in it (Drush reads
+# the install profile from that file).
+# CONFIG_SYNC must match your project's config_sync_directory (container path).
+CONFIG_SYNC=/var/www/html/config/default
+if [ -f "$CONFIG_SYNC/core.extension.yml" ]; then
   drush site:install --existing-config \
     --account-name=admin --account-pass=admin -y
 else
