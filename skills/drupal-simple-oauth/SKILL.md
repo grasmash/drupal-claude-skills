@@ -1,6 +1,6 @@
 ---
 name: drupal-simple-oauth
-description: OAuth2 authentication patterns for Drupal using simple_oauth module. Covers TokenAuthUser permission logic, scope/role matching, mobile app token flows, field_permissions integration, CSRF bypass, and debugging token issues.
+description: Explains OAuth2 authentication in Drupal with the simple_oauth module - TokenAuthUser AND-permission logic, scope/role intersection, OAuth2 scope entities and the dynamic scope provider, mobile app password-grant token requests, field_permissions and JSON:API field access under a token, Bearer-token CSRF 403s, consumer TTLs, and debugging token permission denials. Use when an OAuth/Bearer token is denied a permission the user has, configuring consumers, clients or scopes, requesting tokens from a mobile or decoupled app, or getting 403s on JSON:API requests made with a Bearer token.
 ---
 
 # Drupal Simple OAuth Patterns
@@ -118,102 +118,6 @@ return $exclude_locked_roles ? [$role] : [AccountInterface::AUTHENTICATED_ROLE, 
 ```
 
 This was fixed in issue #3451692 (included in 6.0.x).
-
-## Debugging OAuth Permission Issues
-
-### Step 1: Verify Scope Entity Exists
-
-```bash
-# List all OAuth2 scopes
-ddev drush sqlq "SELECT id, description FROM consumer_scopes"
-
-# Example scopes you might have:
-# - authenticated
-# - api_consumer
-# - premium_user
-# - administrator
-```
-
-### Step 2: Check User Roles
-
-```bash
-ddev drush user:role:list username@example.com
-```
-
-### Step 3: Verify Role Permissions
-
-```bash
-# Check if role has the permission
-ddev drush role:perm:list api_consumer | grep "view field_premium_content"
-```
-
-### Step 4: Test Token Creation
-
-```php
-// Create test script: test_oauth_token.php
-use Drupal\simple_oauth\Entity\Oauth2Token;
-
-$username = 'test_user';
-$scope = 'premium_user'; // Match user's role!
-
-// Get user
-$user = user_load_by_name($username);
-$consumer = \Drupal::entityTypeManager()
-  ->getStorage('consumer')
-  ->loadByProperties(['label' => 'Mobile App']);
-$consumer = reset($consumer);
-
-// Create token
-$token = Oauth2Token::create([
-  'auth_user_id' => $user->id(),
-  'client' => $consumer->id(),
-  'bundle' => 'access_token',
-  'scopes' => $scope,
-  'value' => bin2hex(random_bytes(32)),
-  'expire' => time() + 3600,
-  'status' => TRUE,
-]);
-$token->save();
-
-// Wrap user with token context
-$token_user = new \Drupal\simple_oauth\Authentication\TokenAuthUser($token);
-
-// Test permissions
-$permission = 'view field_premium_content';
-$token_has = $token->hasPermission($permission);
-$user_has = $user->hasPermission($permission);
-$token_user_has = $token_user->hasPermission($permission);
-
-print "Token roles: " . implode(', ', $token->getRoles()) . "\n";
-print "User roles: " . implode(', ', $user->getRoles()) . "\n";
-print "Intersected roles: " . implode(', ', $token_user->getRoles()) . "\n";
-print "Token has permission: " . ($token_has ? 'YES' : 'NO') . "\n";
-print "User has permission: " . ($user_has ? 'YES' : 'NO') . "\n";
-print "TokenAuthUser has permission: " . ($token_user_has ? 'YES' : 'NO') . "\n";
-```
-
-Run with: `ddev drush php:script test_oauth_token.php`
-
-### Step 5: Test API Request
-
-```bash
-#!/bin/bash
-# Get OAuth token
-TOKEN_RESPONSE=$(curl -s -X POST "https://yoursite.ddev.site/oauth/token" \
-  -d "grant_type=password" \
-  -d "client_id=YOUR_CLIENT_ID" \
-  -d "client_secret=YOUR_CLIENT_SECRET" \
-  -d "username=test@example.com" \
-  -d "password=password123" \
-  -d "scope=premium_user")
-
-ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('access_token', ''))")
-
-# Test API request
-curl -s -X GET "https://yoursite.ddev.site/jsonapi/node/article/2" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" | python3 -m json.tool
-```
 
 ## Integration with Other Modules
 
@@ -398,6 +302,14 @@ When OAuth permissions fail:
 - [ ] Is simple_oauth scope provider set to "dynamic"?
   - `ddev drush config:get simple_oauth.settings scope_provider`
 
+## References
+
+| File | Read it when |
+|---|---|
+| [references/debugging-tokens.md](references/debugging-tokens.md) | A token is denied a permission and the Troubleshooting Checklist above did not explain it: step-by-step checks of scope entities, user roles and role permissions, a PHP script that mints a test token and prints token/user/intersected roles, and a curl script that exercises a real API request |
+| [references/bearer-csrf-bypass.md](references/bearer-csrf-bypass.md) | Requests carrying a valid Bearer token get 403 CSRF errors because the client also sends a session cookie (React Native, webviews): the `session_configuration` decorator, its service definition and how to test it |
+| [references/consumer-ttls-and-social-grant.md](references/consumer-ttls-and-social-grant.md) | Changing consumer access/refresh token TTLs (content entities, so `cim` never deploys them), or writing a social/Google token grant that must check `aud` against an allow-list |
+
 ## Related Documentation
 
 - **Drupal.org Issue #3451692:** "Dynamic scope with role granularity does not inherit authenticated permissions" (Fixed in 6.0.x)
@@ -432,85 +344,6 @@ curl -X POST "https://yoursite.ddev.site/oauth/token" \
   -d "password=pass123" \
   -d "scope=SCOPE_NAME"
 ```
-
-## Bearer CSRF Bypass Module
-
-### The Problem: CSRF Validation with Bearer Tokens
-
-When a client (especially React Native apps) sends a request with BOTH a valid Bearer token AND a session cookie, Drupal's `CsrfRequestHeaderAccessCheck` incorrectly triggers CSRF validation. This happens because:
-
-1. Drupal's `session_configuration` service detects a session based on cookies alone
-2. It ignores the Bearer token completely
-3. This causes 403 Forbidden errors even though the Bearer token is valid
-
-**Drupal core issue:** [#3055260](https://www.drupal.org/project/drupal/issues/3055260)
-
-### The Solution: Custom CSRF Bypass Module
-
-Create a custom module (e.g., `oauth_csrf_bypass`) that decorates the `session_configuration` service to return `FALSE` for `hasSession()` when a valid Bearer token is present, preventing unnecessary CSRF checks.
-
-**Location:** `docroot/modules/custom/{module_name}/`
-
-### How It Works
-
-```php
-// src/Session/BearerSessionConfiguration.php
-public function hasSession(Request $request): bool {
-  $auth_header = $request->headers->get('Authorization', '');
-
-  if (str_starts_with($auth_header, 'Bearer ')) {
-    // Validate the token is actually legitimate
-    if ($this->isValidBearerToken($request)) {
-      return FALSE; // No session = no CSRF check
-    }
-  }
-
-  return $this->inner->hasSession($request);
-}
-```
-
-**Security:** The module validates the Bearer token using Simple OAuth's ResourceServer before bypassing CSRF, ensuring invalid tokens don't bypass security.
-
-### Service Definition
-
-```yaml
-# {module_name}.services.yml
-services:
-  {module_name}.session_configuration:
-    class: Drupal\{module_name}\Session\BearerSessionConfiguration
-    decorates: session_configuration
-    decoration_priority: 10
-    arguments:
-      - '@{module_name}.session_configuration.inner'
-      - '@simple_oauth.server.resource_server.factory'
-      - '@psr7.http_message_factory'
-```
-
-### When You Need This
-
-Enable this module when:
-- Mobile apps send Bearer tokens but browsers/webviews also set session cookies
-- You get 403 CSRF errors despite having valid Bearer tokens
-- React Native or similar hybrid apps have authentication issues
-
-### Testing the Fix
-
-```bash
-# Test with Bearer token only - should succeed
-curl -X GET "https://yoursite.ddev.site/jsonapi" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Accept: application/vnd.api+json"
-
-# Test with Bearer + session cookie (the bug scenario) - should also succeed
-curl -X GET "https://yoursite.ddev.site/jsonapi" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Cookie: SESSxxxxxxxxxx=fake_session_value" \
-  -H "Accept: application/vnd.api+json"
-```
-
-### Module Dependencies
-
-- `simple_oauth:simple_oauth` - Required for ResourceServer token validation
 
 ## Key Files Reference
 
