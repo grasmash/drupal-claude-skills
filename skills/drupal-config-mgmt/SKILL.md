@@ -1,6 +1,6 @@
 ---
 name: drupal-config-mgmt
-description: Drupal configuration management including config import/export, config splits (complete and partial), syncing config across environments, drush commands for config management, config:import, config:export, config-split commands
+description: Guides Drupal configuration management safely - single-config export/set/delete, config:import and config:export (cim/cex) with preview-first --no --diff, config:status checks, Config Split (complete vs partial splits, csex/csim, activation), and syncing config from remote environments through Terminus, acli, platform/upsun, lagoon or drush aliases. Use when exporting or importing Drupal config, inspecting or changing a single config object, merging production config into a feature branch, working with config_split, or diagnosing config that will not import or vanishes from config/default on export.
 ---
 
 # Drupal Configuration Management
@@ -42,104 +42,13 @@ terminus drush {site}.{env} -- config:status
 
 ## Table of Contents
 
-1. [Preferred Prod Config Merge Workflow](#preferred-prod-config-merge-workflow)
+1. [Preferred Prod Config Merge Workflow](references/prod-config-merge.md#preferred-prod-config-merge-workflow)
 2. [Configuration Import & Export Basics](#configuration-import--export-basics)
-3. [Config Splits Overview](#config-splits-overview)
-4. [Complete vs Partial Splits](#complete-vs-partial-splits)
+3. [Config Splits Overview](references/config-splits.md#config-splits-overview)
+4. [Complete vs Partial Splits](references/config-splits.md#complete-vs-partial-splits)
 5. [Config Split Commands](#config-split-commands)
 6. [Safe Inspection Workflow](#safe-inspection-workflow)
 7. [Syncing Config from Upstream Environments](#syncing-config-from-upstream-environments)
-
----
-
-## Preferred Prod Config Merge Workflow
-
-**Purpose**: Safely merge production config changes while preserving local feature work.
-
-### The Process
-
-**Step 1: Commit local changes first**
-```bash
-git add config/default/your-new-field.yml docroot/modules/custom/your_module/your_module.module
-git commit -m "feat: add new feature"
-```
-
-**Step 2: Pull production database**
-```bash
-ddev pull pantheon --environment=live
-# Or your preferred method
-```
-
-**Step 3: Export config from prod DB**
-```bash
-ddev drush config:export -y
-```
-
-**Step 4: Review git diff on config directory**
-```bash
-git diff --stat config/           # Summary of changes
-git status --short config/        # See added/modified/deleted
-```
-
-**Step 5: Identify files to revert vs keep**
-
-Look for these patterns:
-- **D (Deleted)** - Your new feature files deleted by prod export → **REVERT**
-- **M (Modified)** - UUID changes from prod → **KEEP**
-- **M (Modified)** - Actual prod config changes → **KEEP**
-- **M (Modified)** - Local changes overwritten → **REVERT** (case by case)
-
-**Step 6: Restore your local feature files**
-```bash
-# Restore deleted files (your new feature config)
-git checkout HEAD -- config/default/field.storage.node.your_new_field.yml
-git checkout HEAD -- config/default/field.field.node.bundle.your_new_field.yml
-
-# Or restore specific modified files
-git checkout HEAD -- config/default/some.config.yml
-```
-
-**Step 7: Verify and commit prod config**
-```bash
-git status --short config/        # Verify your files are restored
-git diff config/                  # Review remaining prod changes
-git add config/
-git commit -m "chore: sync config from production"
-```
-
-### Quick Reference Table
-
-| git status | Meaning | Action |
-|------------|---------|--------|
-| `D config/default/field.*.your_feature.yml` | Your new feature deleted | `git checkout HEAD -- <file>` |
-| `M config/default/*.yml` (UUID only) | Prod UUID sync | Keep (stage for commit) |
-| `M config/default/views.view.*.yml` | View changed in prod | Keep (review first) |
-| `M config/default/system.*.yml` | System config from prod | Keep (review first) |
-
-### Example Session
-
-```bash
-# After pulling prod DB and exporting config
-$ git status --short config/
- M config/default/core.entity_view_display.node.song.teaser.yml
- M config/default/field.storage.group.field_member_count.yml
- D config/default/field.field.node.song.field_child_song_count.yml
- D config/default/field.storage.node.field_child_song_count.yml
- M config/default/views.view.songs.yml
-
-# The D files are our new feature - restore them
-$ git checkout HEAD -- config/default/field.field.node.song.field_child_song_count.yml \
-                       config/default/field.storage.node.field_child_song_count.yml
-
-# Verify
-$ git status --short config/
- M config/default/core.entity_view_display.node.song.teaser.yml
- M config/default/field.storage.group.field_member_count.yml
- M config/default/views.view.songs.yml
-
-# Our feature files are no longer in the diff - commit prod changes
-$ git add config/ && git commit -m "chore: sync config from production"
-```
 
 ---
 
@@ -193,119 +102,6 @@ ddev drush config:set config.name key.subkey value
 ddev drush config:import --no --diff  # Show what would change
 ddev drush cim --no --diff            # Alias
 ```
-
----
-
-## Config Splits Overview
-
-Config splits allow you to have **environment-specific configuration** that doesn't get deployed to all environments.
-
-### Common Use Cases
-
-- **Local development**: Enable devel, kint, stage_file_proxy
-- **Staging/Test**: Enable similar modules but different API keys
-- **Production**: Disable development modules, enable caching
-
-### How Splits Work
-
-1. **Base config** (`config/default/`) - Shared across all environments
-2. **Split config** (`config/{split-name}/`) - Environment-specific overrides
-3. **Split definition** (`config/default/config_split.config_split.{name}.yml`) - Defines which config goes in split
-
-When a split is **active**, its config takes precedence over base config.
-
-### Split Activation
-
-Splits are activated based on conditions in their config:
-- **Status**: `status: true` in split config
-- **Environment variable**: Can use conditions based on env vars
-- **Manual activation**: Via admin UI or drush
-
----
-
-## Complete vs Partial Splits
-
-**CRITICAL**: Understanding the difference between Complete and Partial splits is essential.
-
-### Complete Splits (Recommended for most cases)
-
-**How it works**:
-- Config in the split is **ONLY active** when split is enabled
-- When split is disabled, config is **completely removed** from active config
-- Think: "This config exists ONLY in this environment"
-
-**Use cases**:
-- Development modules (devel, kint, webprofiler)
-- Environment-specific modules (stage_file_proxy for local)
-- Testing modules (simpletest, phpunit)
-
-**Example**: Local split with devel module
-```yaml
-# config/default/config_split.config_split.local.yml
-status: true
-module:
-  devel: 0
-  kint: 0
-complete_list:
-  - 'core.extension'
-```
-
-When split is **active**: devel and kint are enabled
-When split is **inactive**: devel and kint are completely removed
-
-**Reference**: See admin form at `/admin/config/development/configuration/config-split/{split-name}`:
-> "Complete Split: Remove the selected configuration entirely when the split is inactive. When this split is inactive, the configuration listed here will be removed from the system completely."
-
-### Partial Splits (Conditional Overrides)
-
-**How it works**:
-- Base config exists in `config/default/`
-- Split contains **overrides** in `config/{split-name}/`
-- When split is active, overrides are merged with base config
-- When split is inactive, base config is used
-- Think: "This config exists everywhere, but with different values per environment"
-
-**Use cases**:
-- API keys that differ per environment
-- Email settings (different SMTP per environment)
-- Cache settings (aggressive in prod, disabled in local)
-- Search server URLs (local Solr vs Pantheon Search)
-
-**Example**: Different search servers per environment
-
-Base config (`config/default/search_api.server.main.yml`):
-```yaml
-backend_config:
-  connector: pantheon_search
-  # Production settings
-```
-
-Local override (`config/local/config_split.patch.search_api.server.main.yml`):
-```yaml
-backend_config:
-  connector: solr
-  connector_config:
-    host: solr
-    # Local Solr settings
-```
-
-When local split is **active**: Uses local Solr
-When local split is **inactive**: Uses Pantheon Search
-
-**Reference**: See admin form at `/admin/config/development/configuration/config-split/{split-name}`:
-> "Partial Split (Conditional Override): Keep the selected configuration, but override it when the split is active. The configuration will exist in the sync directory, but the version from this split will be used instead when the split is active."
-
-### Choosing Complete vs Partial
-
-**Use Complete when**:
-- ✅ Config should NOT exist in other environments (modules, views, blocks)
-- ✅ It's an on/off decision (enable/disable)
-- ✅ Different environments need different features
-
-**Use Partial when**:
-- ✅ Config exists everywhere but with different VALUES
-- ✅ Same feature, different settings (API URLs, credentials)
-- ✅ You need the base config to be importable without the split active
 
 ---
 
@@ -482,6 +278,16 @@ For comprehensive technical documentation, see:
 - **[config-split-deep-dive.md](references/config-split-deep-dive.md)** - Complete technical reference on Config Split 2.0, patch files, export/import process, and dependency handling
 - **[surgical-config.md](references/surgical-config.md)** - One-config-at-a-time export/set/delete for agents, the `core.extension.yml` exception, raw config writes that drop `dependencies`, baked (PHP-computed) config, and verifying imports with `config:status`
 - [examples.md](references/examples.md) - Practical examples and workflows
+
+## References
+
+| File | Read it when |
+|---|---|
+| [references/surgical-config.md](references/surgical-config.md) | Before any config change an agent makes: exporting, setting or deleting ONE named config object, the `core.extension.yml` exception, raw config writes that drop `dependencies`, baked (PHP-computed) config, verifying an import with `config:status`, shipping a config-only change |
+| [references/prod-config-merge.md](references/prod-config-merge.md) | Merging production config changes into a branch that carries local feature config (pull prod DB, export, restore your deleted/overwritten files) |
+| [references/config-splits.md](references/config-splits.md) | Deciding whether to use a split, or choosing between a Complete and a Partial split |
+| [references/config-split-deep-dive.md](references/config-split-deep-dive.md) | You need the Config Split 2.0 internals: patch files, file naming, the export/import process, dependency handling, and worked local-vs-remote Solr examples (including a complete-split server with auto-generated index patches) |
+| [references/examples.md](references/examples.md) | You want worked examples: syncing one config from dev, syncing Search API config, comparing environments, updating split definitions |
 
 ## Config Status Check
 

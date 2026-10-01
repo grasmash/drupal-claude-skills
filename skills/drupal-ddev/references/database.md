@@ -411,7 +411,6 @@ ddev mysql --init-command="SET SESSION sql_mode=''" < backup.sql
 
 ## Related References
 
-- [Drush Commands](drush.md) - Drush database commands
 - [Config YAML](config-yaml.md) - Database configuration
 - [Custom Commands](custom-commands.md) - Create custom database scripts
 

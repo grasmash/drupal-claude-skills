@@ -1,6 +1,6 @@
 ---
 name: drupal-ddev
-description: DDEV local development environment patterns for Drupal, including configuration, commands, database management, debugging tools, and performance optimization.
+description: Provides DDEV local development patterns for Drupal - ddev commands, .ddev/config.yaml, database import/export and snapshots, Drush and Composer through ddev, Xdebug, local Solr, Mutagen performance, and recovery from Docker, Mutagen and router failures. Use when running ddev start/restart/exec/drush/composer, editing .ddev/config.yaml, importing or snapshotting a database, debugging slow or hung DDEV containers, or recovering a local environment after a Docker crash.
 ---
 
 # DDEV for Drupal Development
@@ -23,27 +23,37 @@ Activates when working with DDEV local development including:
 ## Available Topics
 
 ### Core Setup
-- @references/installation.md - Installing and configuring DDEV
 - @references/config-yaml.md - .ddev/config.yaml reference
-- @references/commands.md - Essential DDEV commands
+- @references/workflows.md - New/imported project setup, remote DB sync, daily workflow, multi-project management
 
 ### Database Operations
 - @references/database.md - Import, export, and snapshot workflows
-- @references/drush.md - Using Drush with DDEV
 
 ### Development Tools
 - @references/xdebug.md - Debugging with Xdebug
-- @references/mailhog.md - Email testing with MailHog
 - @references/solr.md - Local Solr search setup
 
 ### Advanced
 - @references/custom-commands.md - Creating project-specific commands
-- @references/hooks.md - Pre/post hooks automation
 - @references/performance.md - Optimizing DDEV performance
-- @references/multisite.md - Multi-site configuration
 - @references/load-and-recovery.md - Host CPU saturation, post-crash recovery traps, trimming the Mutagen payload, Kernel tests on a throwaway DB, coordinating multiple agents on one project
 
 See `/references/` directory for complete documentation.
+
+## References
+
+Read the matching file when the task needs that detail; the Common Issues section below stays here because it is needed on almost every use.
+
+| File | Read it when |
+|---|---|
+| [references/workflows.md](references/workflows.md) | Setting up a new project, importing an existing one, syncing a database from a remote environment, following the daily start/stop routine, managing several DDEV projects, or cleaning up agent `git worktree` directories |
+| [references/performance.md](references/performance.md) | DDEV feels slow on macOS (Mutagen vs NFS), tuning MariaDB, or PHPUnit/Kernel runs are slow (fast bootstrap, smallest test scope, where to run Kernel suites) |
+| [references/xdebug.md](references/xdebug.md) | Turning Xdebug on/off or wiring an IDE (VSCode `launch.json`) to it |
+| [references/custom-commands.md](references/custom-commands.md) | Writing a project-specific `ddev <command>` under `.ddev/commands/web/` |
+| [references/config-yaml.md](references/config-yaml.md) | Editing `.ddev/config.yaml` beyond the basic example below (PHP, database, ports, hostnames, hooks, services, env vars) |
+| [references/database.md](references/database.md) | Importing, exporting, snapshotting, accessing or sanitizing the database, or a database import fails |
+| [references/solr.md](references/solr.md) | Running a local Solr service for Search API |
+| [references/load-and-recovery.md](references/load-and-recovery.md) | Requests hang under heavy host load, after a Docker crash, trimming the Mutagen payload, running Kernel tests against a throwaway DB, or several agents share one DDEV project |
 
 ---
 
@@ -112,274 +122,6 @@ upload_dirs:
 
 # Performance settings
 performance_mode: mutagen  # For macOS
-```
-
----
-
-## Common Workflows
-
-### New Drupal Project
-
-```bash
-# Create project directory
-mkdir myproject && cd myproject
-
-# Initialize DDEV
-ddev config --project-type=drupal11 --docroot=web --php-version=8.3
-
-# Install Drupal via Composer
-ddev composer create drupal/recommended-project
-
-# Install Drush
-ddev composer require drush/drush
-
-# Start DDEV
-ddev start
-
-# Install Drupal
-ddev drush site:install standard --site-name="My Site" --account-name=admin
-
-# Launch site
-ddev launch
-```
-
-### Import Existing Project
-
-```bash
-# Clone repository
-git clone repo-url myproject && cd myproject
-
-# Start DDEV (reads .ddev/config.yaml)
-ddev start
-
-# Install dependencies
-ddev composer install
-
-# Import database
-ddev import-db --file=path/to/backup.sql.gz
-
-# Import files (if needed)
-ddev import-files --source=/path/to/files
-
-# Run updates
-ddev drush updb -y
-ddev drush cr
-
-# Launch
-ddev launch
-```
-
-### Database Sync from a Remote/Production Environment
-
-```bash
-# Get latest backup from your hosting platform, e.g.:
-#   Pantheon: terminus backup:create/backup:get
-#   Acquia:   acli pull:database
-#   Generic:  drush @alias sql:dump
-
-# Import to local
-ddev import-db --file=backup.sql.gz
-
-# Run updates
-ddev drush updb -y
-ddev drush cr
-
-# Sanitize for local (optional)
-ddev drush sql-sanitize -y
-```
-
-### Daily Development Workflow
-
-```bash
-# Morning: Start project
-ddev start
-
-# Pull latest code
-git pull origin main
-
-# Update dependencies if needed
-ddev composer install
-
-# Clear cache
-ddev drush cr
-
-# Work on features...
-
-# Create database snapshot before testing
-ddev snapshot --name=before-testing
-
-# Test changes...
-
-# If needed, restore snapshot
-ddev snapshot restore --name=before-testing
-
-# Evening: Stop project
-ddev stop
-```
-
----
-
-## Debugging with Xdebug
-
-```bash
-# Enable Xdebug
-ddev xdebug on
-
-# Run your debugger in IDE (PHPStorm, VSCode)
-# Set breakpoints and refresh page
-
-# Disable when done (improves performance)
-ddev xdebug off
-
-# Check Xdebug status
-ddev xdebug status
-```
-
-**VSCode launch.json**:
-```json
-{
-  "name": "Listen for Xdebug",
-  "type": "php",
-  "request": "launch",
-  "port": 9003,
-  "pathMappings": {
-    "/var/www/html": "${workspaceFolder}"
-  }
-}
-```
-
----
-
-## Performance Optimization
-
-### macOS Performance (Mutagen)
-
-```yaml
-# .ddev/config.yaml
-performance_mode: mutagen
-```
-
-```bash
-# Restart after config change
-ddev restart
-```
-
-**Measured, not assumed:** the macOS bind mount, not
-contention, is what's slow. A 7-test Kernel class deconfounded to `none`+idle
-597s vs `mutagen`+idle 3.06s — a ~195x mount effect vs. only ~1.6x from
-removing multi-agent contention. `performance_mode: mutagen` is load-bearing;
-do not flip it off casually. If it misbehaves: an empty/corrupt mutagen
-volume makes `ddev start` fail before syncing — `docker volume rm
-<project>_mutagen` is safe (code-only; the DB volume is separate). Check
-`ddev debug mutagen sync list` when local and container contents diverge.
-Recovery through the volume/daemon (below) should have exactly ONE owner at
-a time — if multiple agent sessions or terminals share the same DDEV
-instance, serialize `ddev start`/`ddev mutagen reset` behind a single lock;
-ownership rotating mid-recovery manufactures mangled containers.
-
-To shrink the sync payload, customize `.ddev/mutagen/mutagen.yml` (remove the
-`#ddev-generated` header first; never ignore `node_modules` globally) — see
-[load-and-recovery.md](references/load-and-recovery.md#trimming-the-mutagen-payload).
-
-### NFS Mount (Alternative for macOS)
-
-```yaml
-# .ddev/config.yaml
-nfs_mount_enabled: true
-```
-
-### Database Tuning
-
-```yaml
-# .ddev/config.yaml
-database:
-  type: mariadb
-  version: "10.6"
-
-# Create .ddev/mysql/my.cnf
-[mysqld]
-innodb_buffer_pool_size = 512M
-innodb_log_file_size = 128M
-```
-
----
-
-## PHPUnit Test Performance
-
-### Fast Bootstrap
-
-Stock Drupal core's PHPUnit bootstrap does a full-docroot-tree class scan on every
-invocation — 76s of cold CLI parse before a single test runs. A generated,
-project-specific bootstrap (e.g. a `scripts/phpunit-bootstrap.php` with the
-PSR-4 namespace map pre-computed, no scan) cuts that to 0.47s; single-test
-wall clock drops 89s → ~5s. Regenerate it when a module's namespace layout
-changes, and prove parity by diffing the full test-ID list old vs. new
-bootstrap (must be byte-identical).
-
-### Run the Smallest Sufficient Scope
-
-Run the smallest sufficient test scope per change (single test, then single
-class); save full-suite runs for batch close. If multiple agent sessions
-share one local DDEV instance, serialize container-disruptive or
-memory-heavy operations (`ddev restart`, `drush cr`, phpunit, Playwright,
-theme builds) behind a lock — N agents hitting one Docker VM concurrently
-means OOM, Mutagen desync, and stale-code WSODs. Lock design (exclusive vs
-counting-semaphore tiers, coalesced cache rebuilds):
-[load-and-recovery.md](references/load-and-recovery.md#coordinating-multiple-agents-on-one-ddev-project).
-
-### Where to Run Kernel Suites
-
-Kernel-test IO is dominated by the macOS bind mount, not the database driver.
-SQLite (`SIMPLETEST_DB=sqlite://...`) is a verified-compatible KernelTestBase
-backend, but it does NOT fix mount IO — a secondary lever, not the fix. If
-Kernel-heavy suites get slow locally, prefer running them in CI rather than
-laptop-only runs. KernelTestBase never needs the site DB: a throwaway MariaDB
-container plus `SIMPLETEST_DB` decouples Kernel runs from DDEV entirely —
-see [load-and-recovery.md](references/load-and-recovery.md#kernel-tests-against-a-throwaway-database).
-
----
-
-## Custom Commands
-
-Create project-specific commands in `.ddev/commands/web/`:
-
-**Example**: `.ddev/commands/web/fresh-install`
-```bash
-#!/bin/bash
-## Description: Fresh Drupal install from scratch
-## Usage: fresh-install
-## Example: ddev fresh-install
-
-set -e
-
-echo "Installing fresh Drupal site..."
-
-# Drop existing database
-drush sql-drop -y
-
-# Install Drupal
-drush site:install standard \
-  --site-name="My Site" \
-  --account-name=admin \
-  --account-pass=admin \
-  -y
-
-# Import config if exists
-if [ -d /var/www/html/config/default ]; then
-  drush config:import -y
-fi
-
-# Clear cache
-drush cr
-
-echo "Fresh install complete!"
-echo "Login: admin / admin"
-```
-
-Make it executable:
-```bash
-chmod +x .ddev/commands/web/fresh-install
-ddev fresh-install
 ```
 
 ---
@@ -632,37 +374,6 @@ can be far larger than what's actually consumed on disk; `du` over-reports on
 APFS because it double-counts copy-on-write clones shared between snapshots.
 Neither answers "how much space would this operation actually cost/free."
 Trust only `df` deltas taken immediately before and after the operation.
-
----
-
-## Multi-Project Management
-
-```bash
-# List all projects
-ddev list
-
-# Stop all projects
-ddev poweroff
-
-# Remove stopped projects
-ddev delete <project-name>
-
-# Remove all project containers (keep files)
-ddev delete --omit-snapshot --yes <project-name>
-```
-
-### Agent Worktree Cleanup
-
-Multi-agent workflows that dispatch via `git worktree` accumulate one
-directory per agent under `.claude/worktrees/` and nothing removes them on
-its own — left unmanaged this is unbounded disk growth (one project found
-46GB of stale worktrees in a single session). A SessionStart "worktree
-janitor" hook can sweep entries that are unlocked, old
-enough, and either clean or dirty with only junk files; anything with real
-tracked-file changes is left alone and logged, never bulldozed. Never `rm -rf`
-a worktree by hand — use `git worktree remove` (it refuses on genuine dirty
-state, which is the safety you want). Executors that spin up their own
-worktree should clean it up themselves when done.
 
 ---
 
