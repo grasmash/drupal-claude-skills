@@ -287,51 +287,18 @@ drush updb -y
 
 ## Production Deployment
 
-When deploying to production environments (Pantheon, Acquia, etc.), always optimize the Composer install:
+For hosts that deploy committed git state (no `composer install` on the server), build the committed vendor without dev packages:
 
 ```bash
-# CRITICAL: Always use these flags for production
-composer install --no-dev -o
-
-# --no-dev: Excludes development dependencies (phpunit, rector, etc.)
-# -o (--optimize-autoloader): Optimizes autoloader for performance
+composer update drupal/module_name --with-all-dependencies   # the change itself
+composer install --no-dev -o                                   # then build the vendor you commit
+git add composer.json composer.lock vendor/                    # vendor/autoload.php + vendor/composer/ together
 ```
 
-**Why This Matters**:
-- `--no-dev` reduces codebase size by excluding testing/dev tools
-- `-o` creates optimized class maps for faster autoloading
-- Reduces security surface by excluding dev dependencies
-- Improves performance on production servers
+- Never commit the dev autoloader left behind by a later plain `composer install`.
+- Stage `vendor/autoload.php`, `vendor/composer/` and the package directories together; a partial stage is a site-wide `ComposerAutoloaderInit... not found` fatal. Pinning `config.autoloader-suffix`, the three suffix files, and a pre-commit check are in the `drupal-deploy-safety` skill (§8).
+- Pushing changes code only. On the target, run the deploy tail (looped `updatedb` → `cache:rebuild` → `config:import` → `cache:rebuild` → `deploy:hook`, then verify), not just `drush cr`; see the `drupal-deploy-safety` skill (§2). Remote-drush forms per host: the `drupal-config-mgmt` skill.
 
-**Production Deployment Workflow**:
-
-```bash
-# 1. After making composer changes locally
-composer update drupal/module_name --with-all-dependencies
-
-# 2. Before committing, optimize for production
-composer install --no-dev -o
-
-# 3. Commit the optimized vendor files. If you stage selectively, vendor/autoload.php
-#    MUST go with vendor/composer/: the autoloader class suffix lives in vendor/autoload.php,
-#    vendor/composer/autoload_real.php and vendor/composer/autoload_static.php, and staging
-#    only some of them is a site-wide "ComposerAutoloaderInit... not found" fatal.
-#    Never commit the autoloader left behind by a later dev `composer install`.
-git add composer.json composer.lock vendor/
-git commit -m "Update module_name with production optimization"
-
-# 4. Push to production
-git push origin master
-
-# 5. Rebuild caches on the remote env (use your platform's remote-drush form):
-acli remote:drush -- cr                       # Acquia
-# terminus drush <site>.<env> -- cr           # Pantheon
-# platform drush -e <env> -- cr               # Platform.sh (Upsun: upsun drush -- cr)
-# lagoon ssh -p <project> -e <env> -C "drush cr"   # Lagoon / amazee.io
-# drush @<alias> cr                            # generic, any host with Drush aliases
-```
-
-**NEVER commit vendor/ with dev dependencies to production branches!**
 ## Developing and Contributing Contrib Modules
 
 The symlink development workflow and the drupal.org issue-fork / merge-request workflow are in [references/contributing-upstream.md](references/contributing-upstream.md). Worked update recipes (known patch, D11 fix, breaking major upgrade) are in [references/update-patterns.md](references/update-patterns.md).
